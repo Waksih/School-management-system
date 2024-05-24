@@ -58,7 +58,6 @@ class ActivityParticipation(db.Model):
     participation_value = db.Column(db.Integer, nullable=False)
     __table_args__ = (db.UniqueConstraint('student_id', 'activity_id', 'term', 'week_or_month', 'participation_value', name='unique_participation'),)
 
-db.create_all()
 
 # Define routes for each table and handle CRUD operations
 

@@ -5,8 +5,9 @@ BASE_URL = 'http://localhost:5000'
 
 st.title("School Management System")
 
-menu = ["Student Management", "Fee Management", "Expenditure Management", "Activity Management", "Student Activity Management", "Activity Participation Management", "Income Management"]
-choice = st.sidebar.selectbox("Select a section", menu)
+#Sidebar for navigation
+st.sidebar.title("Navigation")
+choice = st.sidebar.radio("Go to", ["Student Management", "Fee Management", "Expenditure Management", "Activity Management", "Student Activity Management", "Activity Participation Management", "Income Management"])
 
 
 # Student Management Section
