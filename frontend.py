@@ -6,23 +6,36 @@ BASE_URL = 'http://localhost:5000'
 st.title("School Management System")
 
 #Sidebar for navigation
-st.sidebar.title("Navigation")
+st.sidebar.title("Menu")
 choice = st.sidebar.radio("Go to", ["Student Management", "Fee Management", "Expenditure Management", "Activity Management", "Student Activity Management", "Activity Participation Management", "Income Management"])
 
+#Function to handle API responses
+def handle_response(response):
+    if response.status_code == 200:
+        data = response.json()
+        if data:  # Check if the list is not empty
+            return data
+        else:
+            st.write("No records found.")
+            return None
+    else:
+        st.error("Error fetching data.")
+        return None
 
 # Student Management Section
 if choice == "Student Management":
     st.header("Student Management")
     if st.button("Get Students"):
         response = requests.get(f"{BASE_URL}/students")
-        students = response.json()
-        for student in students:
-            st.write(student)
+        students = handle_response(response)
+        if students:
+            for student in students:
+                st.write(student)
     
     if st.button("Add Student"):
         with st.form(key='student_form'):
             name = st.text_input("Student Name")
-            class_ = st.text_input("Class")
+            class_name = st.text_input("Class Name")
             parent1_name = st.text_input("Parent 1 Name")
             parent1_phone = st.text_input("Parent 1 Phone")
             parent2_name = st.text_input("Parent 2 Name")
@@ -34,7 +47,7 @@ if choice == "Student Management":
             if submit_button:
                 student_data = {
                     "name": name,
-                    "class": class_,
+                    "class_name": class_name,
                     "parent1_name": parent1_name,
                     "parent1_phone": parent1_phone,
                     "parent2_name": parent2_name,
@@ -53,9 +66,10 @@ if choice == "Fee Management":
     st.header("Fee Management")
     if st.button("Get Fees"):
         response = requests.get(f"{BASE_URL}/fees")
-        fees = response.json()
-        for fee in fees:
-            st.write(fee)
+        fees = handle_response(response)
+        if fees:
+            for fee in fees:
+                st.write(fee)
     
     if st.button("Add Fee Record"):
         with st.form(key='fee_form'):
@@ -85,9 +99,10 @@ if choice == "Expenditure Management":
     st.header("Expenditure Management")
     if st.button("Get Expenditures"):
         response = requests.get(f"{BASE_URL}/expenditures")
-        expenditures = response.json()
-        for expenditure in expenditures:
-            st.write(expenditure)
+        expenditures = handle_response(response)
+        if expenditures: 
+            for expenditure in expenditures:
+                st.write(expenditure)
     
     if st.button("Add Expenditure"):
         with st.form(key='expenditure_form'):
@@ -117,9 +132,10 @@ if choice == "Activity Management":
     st.header("Activity Management")
     if st.button("Get Activities"):
         response = requests.get(f"{BASE_URL}/activities")
-        activities = response.json()
-        for activity in activities:
-            st.write(activity)
+        activities = handle_response(response)
+        if activities: 
+            for activity in activities:
+                st.write(activity)
     
     if st.button("Add Activity"):
         with st.form(key='activity_form'):
@@ -145,9 +161,10 @@ if choice == "Student Activity Management":
     st.header("Student Activity Management")
     if st.button("Get Student Activities"):
         response = requests.get(f"{BASE_URL}/student_activities")
-        student_activities = response.json()
-        for student_activity in student_activities:
-            st.write(student_activity)
+        student_activities = handle_response(response)
+        if student_activities:
+            for student_activity in student_activities:
+                st.write(student_activity)
     
     if st.button("Add Student Activity"):
         with st.form(key='student_activity_form'):
@@ -168,12 +185,14 @@ if choice == "Student Activity Management":
 
 # Activity Participation Management Section
 if choice == "Activity Participation Management":
+
     st.header("Activity Participation Management")
     if st.button("Get Activity Participations"):
         response = requests.get(f"{BASE_URL}/activity_participation")
-        participations = response.json()
-        for participation in participations:
-            st.write(participation)
+        participations = handle_response(response)
+        if participations:
+            for participation in participations:
+                st.write(participation)
     
     if st.button("Add Participation Record"):
         with st.form(key='participation_form'):
@@ -197,3 +216,33 @@ if choice == "Activity Participation Management":
                     st.success("Participation record added successfully!")
                 else:
                     st.error("Error adding participation record")
+
+# Income Management Section
+if choice == "Income Management":
+    
+    st.header("Income Management")
+    if st.button("Get Income Records"):
+        response = requests.get(f"{BASE_URL}/income")
+        income_records = handle_response(response)
+        if income_records:
+            for income in income_records:
+                st.write(income)
+    
+    if st.button("Add Income Record"):
+        with st.form(key='income_form'):
+            source = st.text_input("Source")
+            amount = st.number_input("Amount")
+            date = st.date_input("Date")
+            submit_button = st.form_submit_button(label='Submit')
+            
+            if submit_button:
+                income_data = {
+                    "source": source,
+                    "amount": amount,
+                    "date": str(date)
+                }
+                response = requests.post(f"{BASE_URL}/income", json=income_data)
+                if response.status_code == 201:
+                    st.success("Income record added successfully!")
+                else:
+                    st.error("Error adding income record")

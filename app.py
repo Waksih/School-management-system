@@ -10,13 +10,15 @@ class Student(db.Model):
     __tablename__ = 'students'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50))
-    class_ = db.Column(db.String(20))
+    class_name = db.Column(db.String(20))
     parent1_name = db.Column(db.String(50))
     parent1_phone = db.Column(db.String(15))
     parent2_name = db.Column(db.String(50))
     parent2_phone = db.Column(db.String(15))
     fee_payable = db.Column(db.Numeric(10, 2))
     fee_status = db.Column(db.String(20))
+
+    
 
 class Fee(db.Model):
     __tablename__ = 'fees'
@@ -58,6 +60,13 @@ class ActivityParticipation(db.Model):
     participation_value = db.Column(db.Integer, nullable=False)
     __table_args__ = (db.UniqueConstraint('student_id', 'activity_id', 'term', 'week_or_month', 'participation_value', name='unique_participation'),)
 
+class Income(db.Model):
+    __tablename__='income'
+    id = db.Column(db.Integer, primary_key=True)
+    source = db.Column(db.String(50))
+    amount = db.Column(db.Numeric(10, 2))
+    date = db.Column(db.Date)
+
 
 # Define routes for each table and handle CRUD operations
 
@@ -67,7 +76,7 @@ def manage_students():
         data = request.get_json()
         new_student = Student(
             name=data['name'],
-            class_=data['class'],
+            class_name =data['class_name'],
             parent1_name=data['parent1_name'],
             parent1_phone=data['parent1_phone'],
             parent2_name=data['parent2_name'],
@@ -83,7 +92,7 @@ def manage_students():
     return jsonify([{
         'id': student.id,
         'name': student.name,
-        'class': student.class_,
+        'class_name': student.class_name,
         'parent1_name': student.parent1_name,
         'parent1_phone': student.parent1_phone,
         'parent2_name': student.parent2_name,
@@ -205,6 +214,28 @@ def manage_activity_participation():
         'week_or_month': activity_participation.week_or_month,
         'participation_value': activity_participation.participation_value
     } for activity_participation in activity_participations])
+
+@app.route('/income', methods=['GET', 'POST'])
+def manage_income():
+    if request.method == 'POST':
+        data = request.get_json()
+        new_income = Income(
+            source=data['source'],
+            amount=data['amount'],
+            date=data['date']
+        )
+        db.session.add(new_income)
+        db.session.commit()
+        return jsonify({'message': 'Income record added successfully!'}), 201
+
+    income_records = Income.query.all()
+    return jsonify([{
+        'id': income.id,
+        'source': income.source,
+        'amount': income.amount,
+        'date': income.date
+    } for income in income_records])
+
 
 if __name__ == '__main__':
     app.run(debug=True)
