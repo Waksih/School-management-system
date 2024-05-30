@@ -1,5 +1,7 @@
 import streamlit as st
 import requests
+import pandas as pd
+
 
 BASE_URL = 'http://localhost:5000'
 
@@ -11,7 +13,7 @@ choice = st.sidebar.radio("Go to", ["Student Management", "Fee Management", "Exp
 
 #Function to handle API responses
 def handle_response(response):
-    if response.status_code == 200:
+    if response.status_code in [200, 201]:
         data = response.json()
         if data:  # Check if the list is not empty
             return data
@@ -20,46 +22,68 @@ def handle_response(response):
             return None
     else:
         st.error("Error fetching data.")
-        return None
+        return []
+
+#Function for fetching records
+def fetch_students():
+    response = requests.get(f"{BASE_URL}/students")
+    return handle_response(response)
+
+#initialize session state for form visibility
+if "show_form" not in st.session_state:
+    st.session_state.show_form = False
 
 # Student Management Section
 if choice == "Student Management":
     st.header("Student Management")
-    if st.button("Get Students"):
-        response = requests.get(f"{BASE_URL}/students")
-        students = handle_response(response)
-        if students:
-            for student in students:
-                st.write(student)
-    
+
+    #Automatically fetch and display students
+    students = fetch_students()
+    if students:
+        #Convert list of student dictionaries to a Dataframe
+        df = pd.DataFrame(students)
+        st.dataframe(df)
+
+    # Button to add a new student
     if st.button("Add Student"):
+        st.session_state.show_form = True
+
+    # Display the form if show_form is True
+    if st.session_state.show_form:
+        #Add student form
+        st.write("Add a new student:")
         with st.form(key='student_form'):
-            name = st.text_input("Student Name")
-            class_name = st.text_input("Class Name")
-            parent1_name = st.text_input("Parent 1 Name")
-            parent1_phone = st.text_input("Parent 1 Phone")
-            parent2_name = st.text_input("Parent 2 Name")
-            parent2_phone = st.text_input("Parent 2 Phone")
-            fee_payable = st.number_input("Fee Payable")
-            fee_status = st.selectbox("Fee Status", ["Complete", "Incomplete"])
-            submit_button = st.form_submit_button(label='Submit')
-            
-            if submit_button:
-                student_data = {
-                    "name": name,
-                    "class_name": class_name,
-                    "parent1_name": parent1_name,
-                    "parent1_phone": parent1_phone,
-                    "parent2_name": parent2_name,
-                    "parent2_phone": parent2_phone,
-                    "fee_payable": fee_payable,
-                    "fee_status": fee_status
-                }
-                response = requests.post(f"{BASE_URL}/students", json=student_data)
-                if response.status_code == 201:
-                    st.success("Student added successfully!")
-                else:
-                    st.error("Error adding student")
+                name = st.text_input("Student Name")
+                class_name = st.text_input("Class Name")
+                parent1_name = st.text_input("Parent 1 Name")
+                parent1_phone = st.text_input("Parent 1 Phone")
+                parent2_name = st.text_input("Parent 2 Name")
+                parent2_phone = st.text_input("Parent 2 Phone")
+                fee_payable = st.number_input("Fee Payable")
+                fee_status = st.selectbox("Fee Status", ["Complete", "Incomplete"])
+                submit_button = st.form_submit_button(label='Submit')
+                
+                if submit_button:
+                    student_data = {
+                        "name": name,
+                        "class_name": class_name,
+                        "parent1_name": parent1_name,
+                        "parent1_phone": parent1_phone,
+                        "parent2_name": parent2_name,
+                        "parent2_phone": parent2_phone,
+                        "fee_payable": fee_payable,
+                        "fee_status": fee_status
+                    }
+                    st.write("Submitting student data:", student_data)
+                    response = requests.post(f"{BASE_URL}/students", json=student_data)
+                    if response.status_code == 201:
+                        st.success("Student added successfully!")
+                        st.session_state.show_form = False
+                        
+                    else:
+                        st.error("Error adding student")
+    if st.button("Cancel"):
+        st.session_state.show_form = False
 
 # Fee Management Section
 if choice == "Fee Management":
