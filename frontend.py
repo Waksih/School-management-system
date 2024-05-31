@@ -25,8 +25,8 @@ def handle_response(response):
         return []
 
 #Function for fetching records
-def fetch_students():
-    response = requests.get(f"{BASE_URL}/students")
+def fetch_data(endpoint):
+    response = requests.get(f"{BASE_URL}/{endpoint}")
     return handle_response(response)
 
 #initialize session state for form visibility
@@ -37,13 +37,7 @@ if "show_form" not in st.session_state:
 if choice == "Student Management":
     st.header("Student Management")
 
-    #Automatically fetch and display students
-    students = fetch_students()
-    if students:
-        #Convert list of student dictionaries to a Dataframe
-        df = pd.DataFrame(students)
-        st.dataframe(df)
-
+    
     # Button to add a new student
     if st.button("Add Student"):
         st.session_state.show_form = True
@@ -64,26 +58,42 @@ if choice == "Student Management":
                 submit_button = st.form_submit_button(label='Submit')
                 
                 if submit_button:
-                    student_data = {
-                        "name": name,
-                        "class_name": class_name,
-                        "parent1_name": parent1_name,
-                        "parent1_phone": parent1_phone,
-                        "parent2_name": parent2_name,
-                        "parent2_phone": parent2_phone,
-                        "fee_payable": fee_payable,
-                        "fee_status": fee_status
-                    }
-                    st.write("Submitting student data:", student_data)
-                    response = requests.post(f"{BASE_URL}/students", json=student_data)
-                    if response.status_code == 201:
-                        st.success("Student added successfully!")
-                        st.session_state.show_form = False
-                        
+                # Form validation
+                    if not all([name, class_name, parent1_name, parent1_phone, parent2_name, parent2_phone, fee_payable, fee_status]):
+                        st.error("All fields are required.")
                     else:
-                        st.error("Error adding student")
-    if st.button("Cancel"):
-        st.session_state.show_form = False
+                        # Check for duplicates
+                        students = fetch_data('students')
+                        duplicate = any(student for student in students if student['name'] == name and student['class_name'] == class_name)
+                        if duplicate:
+                            st.error("This student is already entered.")
+                        else:
+                            student_data = {
+                                "name": name,
+                                "class_name": class_name,
+                                "parent1_name": parent1_name,
+                                "parent1_phone": parent1_phone,
+                                "parent2_name": parent2_name,
+                                "parent2_phone": parent2_phone,
+                                "fee_payable": fee_payable,
+                                "fee_status": fee_status
+                            }
+                            response = requests.post(f"{BASE_URL}/students", json=student_data)
+                            if response.status_code == 201:
+                                st.success("Student added successfully!")
+                                st.session_state.show_form = False
+                            else:
+                                st.error("Error adding student")
+        if st.button("Cancel"):
+            st.session_state.show_form = False
+            st.experimental_rerun()
+
+    #Automatically fetch and display students
+    students = fetch_data('students')
+    if students:
+        #Convert list of student dictionaries to a Dataframe
+        df = pd.DataFrame(students)
+        st.dataframe(df)
 
 # Fee Management Section
 if choice == "Fee Management":
