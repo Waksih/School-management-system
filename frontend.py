@@ -33,6 +33,8 @@ def fetch_data(endpoint):
 if "show_form" not in st.session_state:
     st.session_state.show_form = False
 
+
+
 # Student Management Section
 if choice == "Student Management":
     st.header("Student Management")
@@ -92,20 +94,23 @@ if choice == "Student Management":
     students = fetch_data('students')
     if students:
         #Convert list of student dictionaries to a Dataframe
-        df = pd.DataFrame(students)
+        df = pd.DataFrame(students, columns=[
+            'name', 'class_name', 'parent1_name', 'parent1_phone',
+            'parent2_name', 'parent2_phone', 'fee_payable', 'fee_status'
+        ])
         st.dataframe(df)
 
 # Fee Management Section
 if choice == "Fee Management":
     st.header("Fee Management")
-    if st.button("Get Fees"):
-        response = requests.get(f"{BASE_URL}/fees")
-        fees = handle_response(response)
-        if fees:
-            for fee in fees:
-                st.write(fee)
     
+    # Button to add a new fee record
     if st.button("Add Fee Record"):
+        st.session_state.show_form = True
+
+    if st.session_state.show_form:
+        # Add fee record form
+        st.write("Add a new Fee Record")
         with st.form(key='fee_form'):
             student_id = st.number_input("Student ID", min_value=1)
             total_fees = st.number_input("Total Fees")
@@ -115,30 +120,46 @@ if choice == "Fee Management":
             submit_button = st.form_submit_button(label='Submit')
             
             if submit_button:
-                fee_data = {
-                    "student_id": student_id,
-                    "total_fees": total_fees,
-                    "amount_paid": amount_paid,
-                    "balance": balance,
-                    "remarks": remarks
-                }
-                response = requests.post(f"{BASE_URL}/fees", json=fee_data)
-                if response.status_code == 201:
-                    st.success("Fee record added successfully!")
+                # Form validation
+                if not all([student_id, total_fees, amount_paid, balance]):
+                    st.error("All fields except remarks are required.")
                 else:
-                    st.error("Error adding fee record")
+                    fee_data = {
+                        "student_id": student_id,
+                        "total_fees": total_fees,
+                        "amount_paid": amount_paid,
+                        "balance": balance,
+                        "remarks": remarks
+                    }
+                    response = requests.post(f"{BASE_URL}/fees", json=fee_data)
+                    if response.status_code == 201:
+                        st.success("Fee record added successfully!")
+                        st.session_state.show_form = False
+                    else:
+                        st.error("Error adding fee record")
+        if st.button("Cancel"):
+            st.session_state.show_form = False
+            st.experimental_rerun()
+
+    # Automatically fetch and display fee records
+    fees = fetch_data('fees')
+    if fees:
+        # Convert list of fee dictionaries to a Dataframe
+        df = pd.DataFrame(fees)
+        st.dataframe(df)
+
 
 # Expenditure Management Section
 if choice == "Expenditure Management":
     st.header("Expenditure Management")
-    if st.button("Get Expenditures"):
-        response = requests.get(f"{BASE_URL}/expenditures")
-        expenditures = handle_response(response)
-        if expenditures: 
-            for expenditure in expenditures:
-                st.write(expenditure)
-    
+
+    # Button to add a new expenditure
     if st.button("Add Expenditure"):
+        st.session_state.show_form = True
+
+    if st.session_state.show_form:
+        # Add expenditure form
+        st.write("Add new Expenditure")
         with st.form(key='expenditure_form'):
             date = st.date_input("Date")
             item = st.text_input("Item")
@@ -148,30 +169,46 @@ if choice == "Expenditure Management":
             submit_button = st.form_submit_button(label='Submit')
             
             if submit_button:
-                expenditure_data = {
-                    "date": str(date),
-                    "item": item,
-                    "category": category,
-                    "vendor": vendor,
-                    "amount": amount
-                }
-                response = requests.post(f"{BASE_URL}/expenditures", json=expenditure_data)
-                if response.status_code == 201:
-                    st.success("Expenditure added successfully!")
+                # Form validation
+                if not all([date, item, category, vendor, amount]):
+                    st.error("All fields are required.")
                 else:
-                    st.error("Error adding expenditure")
+                    expenditure_data = {
+                        "date": str(date),
+                        "item": item,
+                        "category": category,
+                        "vendor": vendor,
+                        "amount": amount
+                    }
+                    response = requests.post(f"{BASE_URL}/expenditures", json=expenditure_data)
+                    if response.status_code == 201:
+                        st.success("Expenditure added successfully!")
+                        st.session_state.show_form = False
+                    else:
+                        st.error("Error adding expenditure")
+        if st.button("Cancel"):
+            st.session_state.show_form = False
+            st.experimental_rerun()
+
+    # Automatically fetch and display expenditures
+    expenditures = fetch_data('expenditures')
+    if expenditures:
+        # Convert list of expenditure dictionaries to a Dataframe
+        df = pd.DataFrame(expenditures)
+        st.dataframe(df)
+
 
 # Activity Management Section
 if choice == "Activity Management":
     st.header("Activity Management")
-    if st.button("Get Activities"):
-        response = requests.get(f"{BASE_URL}/activities")
-        activities = handle_response(response)
-        if activities: 
-            for activity in activities:
-                st.write(activity)
-    
+
+    # Button to add a new activity
     if st.button("Add Activity"):
+        st.session_state.show_form = True
+
+    if st.session_state.show_form:
+        # Add activity form
+        st.write("Add new Activity")
         with st.form(key='activity_form'):
             activity_name = st.text_input("Activity Name")
             payment_frequency = st.text_input("Payment Frequency")
@@ -179,56 +216,86 @@ if choice == "Activity Management":
             submit_button = st.form_submit_button(label='Submit')
             
             if submit_button:
-                activity_data = {
-                    "activity_name": activity_name,
-                    "payment_frequency": payment_frequency,
-                    "fee_amount": fee_amount
-                }
-                response = requests.post(f"{BASE_URL}/activities", json=activity_data)
-                if response.status_code == 201:
-                    st.success("Activity added successfully!")
+                # Form validation
+                if not all([activity_name, payment_frequency, fee_amount]):
+                    st.error("All fields are required.")
                 else:
-                    st.error("Error adding activity")
+                    activity_data = {
+                        "activity_name": activity_name,
+                        "payment_frequency": payment_frequency,
+                        "fee_amount": fee_amount
+                    }
+                    response = requests.post(f"{BASE_URL}/activities", json=activity_data)
+                    if response.status_code == 201:
+                        st.success("Activity added successfully!")
+                        st.session_state.show_form = False
+                    else:
+                        st.error("Error adding activity")
+        if st.button("Cancel"):
+            st.session_state.show_form = False
+            st.experimental_rerun()
+
+    # Automatically fetch and display activities
+    activities = fetch_data('activities')
+    if activities:
+        # Convert list of activity dictionaries to a Dataframe
+        df = pd.DataFrame(activities)
+        st.dataframe(df)
+
 
 # Student Activity Management Section
 if choice == "Student Activity Management":
     st.header("Student Activity Management")
-    if st.button("Get Student Activities"):
-        response = requests.get(f"{BASE_URL}/student_activities")
-        student_activities = handle_response(response)
-        if student_activities:
-            for student_activity in student_activities:
-                st.write(student_activity)
-    
+
+    # Button to add a new student activity
     if st.button("Add Student Activity"):
+        st.session_state.show_form = True
+
+    if st.session_state.show_form:
+        # Add student activity form
+        st.write("Add new Participation Record")
         with st.form(key='student_activity_form'):
             student_id = st.number_input("Student ID", min_value=1)
             activity_id = st.number_input("Activity ID", min_value=1)
             submit_button = st.form_submit_button(label='Submit')
             
             if submit_button:
-                student_activity_data = {
-                    "student_id": student_id,
-                    "activity_id": activity_id
-                }
-                response = requests.post(f"{BASE_URL}/student_activities", json=student_activity_data)
-                if response.status_code == 201:
-                    st.success("Student Activity added successfully!")
+                # Form validation
+                if not all([student_id, activity_id]):
+                    st.error("All fields are required.")
                 else:
-                    st.error("Error adding student activity")
+                    student_activity_data = {
+                        "student_id": student_id,
+                        "activity_id": activity_id
+                    }
+                    response = requests.post(f"{BASE_URL}/student_activities", json=student_activity_data)
+                    if response.status_code == 201:
+                        st.success("Student activity added successfully!")
+                        st.session_state.show_form = False
+                    else:
+                        st.error("Error adding student activity")
+        if st.button("Cancel"):
+            st.session_state.show_form = False
+            st.experimental_rerun()
+
+    # Automatically fetch and display student activities
+    student_activities = fetch_data('student_activities')
+    if student_activities:
+        # Convert list of expenditure dictionaries to a Dataframe
+        df = pd.DataFrame(student_activities)
+        st.dataframe(df)
+
 
 # Activity Participation Management Section
 if choice == "Activity Participation Management":
-
     st.header("Activity Participation Management")
-    if st.button("Get Activity Participations"):
-        response = requests.get(f"{BASE_URL}/activity_participation")
-        participations = handle_response(response)
-        if participations:
-            for participation in participations:
-                st.write(participation)
     
+    #Button to add new activity participation record
     if st.button("Add Participation Record"):
+        st.session_state.show_form = True
+
+    if st.session_state.show_form:
+    # Add participation record form
         with st.form(key='participation_form'):
             student_id = st.number_input("Student ID", min_value=1)
             activity_id = st.number_input("Activity ID", min_value=1)
@@ -238,31 +305,46 @@ if choice == "Activity Participation Management":
             submit_button = st.form_submit_button(label='Submit')
             
             if submit_button:
-                participation_data = {
-                    "student_id": student_id,
-                    "activity_id": activity_id,
-                    "term": term,
-                    "week_or_month": week_or_month,
-                    "participation_value": participation_value
-                }
-                response = requests.post(f"{BASE_URL}/activity_participation", json=participation_data)
-                if response.status_code == 201:
-                    st.success("Participation record added successfully!")
+                # Form validation
+                if not all([student_id, activity_id, term, week_or_month, participation_value]):
+                    st.error("All fields are required.")
                 else:
-                    st.error("Error adding participation record")
+                    participation_data = {
+                        "student_id": student_id,
+                        "activity_id": activity_id,
+                        "term": term,
+                        "week_or_month": week_or_month,
+                        "participation_value": participation_value
+                    }
+                    response = requests.post(f"{BASE_URL}/activity_participation", json=participation_data)
+                    if response.status_code == 201:
+                        st.success("Participation record added successfully!")
+                        st.session_state.show_form = False
+                    else:
+                        st.error("Error adding participation record")
+        if st.button("Cancel"):
+            st.session_state.show_form = False
+            st.experimental_rerun()
+
+    # Automatically fetch and display participation records
+    participations = fetch_data('activity_participation')
+    if participations:
+        # Convert list of participation dictionaries to a Dataframe
+        df = pd.DataFrame(participations)
+        st.dataframe(df)
+
 
 # Income Management Section
 if choice == "Income Management":
-    
     st.header("Income Management")
-    if st.button("Get Income Records"):
-        response = requests.get(f"{BASE_URL}/income")
-        income_records = handle_response(response)
-        if income_records:
-            for income in income_records:
-                st.write(income)
     
+    # Button to add a new income record
     if st.button("Add Income Record"):
+        st.session_state.show_form = True
+
+    if st.session_state.show_form:
+        # Add income record form
+        st.write("Add new income record")
         with st.form(key='income_form'):
             source = st.text_input("Source")
             amount = st.number_input("Amount")
@@ -270,13 +352,28 @@ if choice == "Income Management":
             submit_button = st.form_submit_button(label='Submit')
             
             if submit_button:
-                income_data = {
-                    "source": source,
-                    "amount": amount,
-                    "date": str(date)
-                }
-                response = requests.post(f"{BASE_URL}/income", json=income_data)
-                if response.status_code == 201:
-                    st.success("Income record added successfully!")
+                # Form validation
+                if not all([source, amount, date]):
+                    st.error("All fields are required.")
                 else:
-                    st.error("Error adding income record")
+                    income_data = {
+                        "source": source,
+                        "amount": amount,
+                        "date": str(date)
+                    }
+                    response = requests.post(f"{BASE_URL}/income", json=income_data)
+                    if response.status_code == 201:
+                        st.success("Income record added successfully!")
+                        st.session_state.show_form = False
+                    else:
+                        st.error("Error adding income record")
+        if st.button("Cancel"):
+            st.session_state.show_form = False
+            st.experimental_rerun()
+
+    # Automatically fetch and display income records
+    income_records = fetch_data('income')
+    if income_records:
+        # Convert list of income dictionaries to a Dataframe
+        df = pd.DataFrame(income_records)
+        st.dataframe(df)
