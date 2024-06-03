@@ -145,7 +145,10 @@ if choice == "Fee Management":
     fees = fetch_data('fees')
     if fees:
         # Convert list of fee dictionaries to a Dataframe
-        df = pd.DataFrame(fees)
+        df = pd.DataFrame(fees, columns=[
+            'student_id', 'total_fees', 'amount_paid', 
+            'balance', 'remarks'
+        ])
         st.dataframe(df)
 
 
