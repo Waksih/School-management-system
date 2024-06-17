@@ -112,7 +112,7 @@ if choice == "Fee Management":
         # Add fee record form
         st.write("Add a new Fee Record")
         with st.form(key='fee_form'):
-            student_id = st.number_input("Student ID", min_value=1)
+            student_name = st.text_input("Student Name")
             total_fees = st.number_input("Total Fees")
             amount_paid = st.number_input("Amount Paid")
             balance = st.number_input("Balance")
@@ -125,7 +125,7 @@ if choice == "Fee Management":
                     st.error("All fields except remarks are required.")
                 else:
                     fee_data = {
-                        "student_id": student_id,
+                        "student_name": student_name,
                         "total_fees": total_fees,
                         "amount_paid": amount_paid,
                         "balance": balance,
@@ -146,7 +146,7 @@ if choice == "Fee Management":
     if fees:
         # Convert list of fee dictionaries to a Dataframe
         df = pd.DataFrame(fees, columns=[
-            'student_id', 'total_fees', 'amount_paid', 
+            'student_name', 'total_fees', 'amount_paid', 
             'balance', 'remarks'
         ])
         st.dataframe(df)
@@ -197,7 +197,9 @@ if choice == "Expenditure Management":
     expenditures = fetch_data('expenditures')
     if expenditures:
         # Convert list of expenditure dictionaries to a Dataframe
-        df = pd.DataFrame(expenditures)
+        df = pd.DataFrame(expenditures, columns=[
+            "date","item","category","vendor","amount"
+        ])
         st.dataframe(df)
 
 
@@ -214,7 +216,7 @@ if choice == "Activity Management":
         st.write("Add new Activity")
         with st.form(key='activity_form'):
             activity_name = st.text_input("Activity Name")
-            payment_frequency = st.text_input("Payment Frequency")
+            payment_frequency = st.selectbox("Payment Frequency", ["Daily","Weekly","Monthly","termly"])
             fee_amount = st.number_input("Fee Amount")
             submit_button = st.form_submit_button(label='Submit')
             
@@ -242,7 +244,9 @@ if choice == "Activity Management":
     activities = fetch_data('activities')
     if activities:
         # Convert list of activity dictionaries to a Dataframe
-        df = pd.DataFrame(activities)
+        df = pd.DataFrame(activities, columns=[
+            "activity_name", "fee_amount", "payment_frequency"
+        ])
         st.dataframe(df)
 
 
@@ -258,8 +262,8 @@ if choice == "Student Activity Management":
         # Add student activity form
         st.write("Add new Participation Record")
         with st.form(key='student_activity_form'):
-            student_id = st.number_input("Student ID", min_value=1)
-            activity_id = st.number_input("Activity ID", min_value=1)
+            student_name = st.text_input("Student Name")
+            activity_name = st.text_input("Activity Name")
             submit_button = st.form_submit_button(label='Submit')
             
             if submit_button:
@@ -268,8 +272,8 @@ if choice == "Student Activity Management":
                     st.error("All fields are required.")
                 else:
                     student_activity_data = {
-                        "student_id": student_id,
-                        "activity_id": activity_id
+                        "student_name": student_name,
+                        "activity_name": activity_name
                     }
                     response = requests.post(f"{BASE_URL}/student_activities", json=student_activity_data)
                     if response.status_code == 201:
@@ -285,7 +289,9 @@ if choice == "Student Activity Management":
     student_activities = fetch_data('student_activities')
     if student_activities:
         # Convert list of expenditure dictionaries to a Dataframe
-        df = pd.DataFrame(student_activities)
+        df = pd.DataFrame(student_activities, columns=[
+            "student_name", "activity_name"
+        ])
         st.dataframe(df)
 
 
@@ -300,11 +306,14 @@ if choice == "Activity Participation Management":
     if st.session_state.show_form:
     # Add participation record form
         with st.form(key='participation_form'):
-            student_id = st.number_input("Student ID", min_value=1)
-            activity_id = st.number_input("Activity ID", min_value=1)
+            student_name = st.text_input("Student Name")
+            activity_name = st.text_input("Activity Name")
             term = st.number_input("Term", min_value=1)
-            week_or_month = st.text_input("Week or Month")
-            participation_value = st.number_input("Participation Value", min_value=1)
+            frequency = st.selectbox("Frequency", ["Daily","Weekly","Monthly","termly"])
+            status = st.text_input("Status")
+            date_paid_for = st.date_input("Date Paid For")
+            amount_paid = st.number_input("Amount Paid")
+            balance = st.number_input("Balance")
             submit_button = st.form_submit_button(label='Submit')
             
             if submit_button:
@@ -313,11 +322,14 @@ if choice == "Activity Participation Management":
                     st.error("All fields are required.")
                 else:
                     participation_data = {
-                        "student_id": student_id,
-                        "activity_id": activity_id,
+                        "student_name": student_name,
+                        "activity_name": activity_name,
                         "term": term,
-                        "week_or_month": week_or_month,
-                        "participation_value": participation_value
+                        "frequency": frequency,
+                        "status": status,
+                        "date_paid_for": date_paid_for.strftime('%Y-%m-%d'),
+                        "amount_paid": amount_paid,
+                        "balance": balance
                     }
                     response = requests.post(f"{BASE_URL}/activity_participation", json=participation_data)
                     if response.status_code == 201:
@@ -333,7 +345,11 @@ if choice == "Activity Participation Management":
     participations = fetch_data('activity_participation')
     if participations:
         # Convert list of participation dictionaries to a Dataframe
-        df = pd.DataFrame(participations)
+        df = pd.DataFrame(participations, columns=[
+            'student_name', 'activity_name', 'term', 
+            'frequency', 'status', 'date_paid_for', 
+            'amount_paid', 'balance'
+        ])
         st.dataframe(df)
 
 
@@ -349,6 +365,7 @@ if choice == "Income Management":
         # Add income record form
         st.write("Add new income record")
         with st.form(key='income_form'):
+            student_name = st.text_input("Student Name")
             source = st.text_input("Source")
             amount = st.number_input("Amount")
             date = st.date_input("Date")
@@ -360,6 +377,7 @@ if choice == "Income Management":
                     st.error("All fields are required.")
                 else:
                     income_data = {
+                        "student_name": student_name,
                         "source": source,
                         "amount": amount,
                         "date": str(date)
@@ -378,5 +396,7 @@ if choice == "Income Management":
     income_records = fetch_data('income')
     if income_records:
         # Convert list of income dictionaries to a Dataframe
-        df = pd.DataFrame(income_records)
+        df = pd.DataFrame(income_records, columns=[
+            "student_name", "source", "amount", "date"
+        ])
         st.dataframe(df)
