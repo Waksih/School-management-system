@@ -26,8 +26,16 @@ def handle_response(response):
 
 #Function for fetching records
 def fetch_data(endpoint):
-    response = requests.get(f"{BASE_URL}/{endpoint}")
-    return handle_response(response)
+    try:
+        response = requests.get(f"{BASE_URL}/{endpoint}")
+        if response.status_code == 200:
+            return response.json()
+        else:
+            st.error(f"Failed to fetch {endpoint} data")
+            return []
+    except Exception as e:
+        st.error(f"Error fetching {endpoint} data: {e}")
+        return []
 
 #initialize session state for form visibility
 if "show_form" not in st.session_state:
@@ -66,6 +74,8 @@ if choice == "Student Management":
                     else:
                         # Check for duplicates
                         students = fetch_data('students')
+                        if students is None:
+                            students = []
                         duplicate = any(student for student in students if student['name'] == name and student['class_name'] == class_name)
                         if duplicate:
                             st.error("This student is already entered.")
@@ -84,8 +94,11 @@ if choice == "Student Management":
                             if response.status_code == 201:
                                 st.success("Student added successfully!")
                                 st.session_state.show_form = False
+                                st.experimental_rerun()
                             else:
-                                st.error("Error adding student")
+                                error_message = response.json().get('error', 'Unknown error')
+                                st.error(f"Error adding student: {error_message}")
+
         if st.button("Cancel"):
             st.session_state.show_form = False
             st.experimental_rerun()
@@ -99,6 +112,8 @@ if choice == "Student Management":
             'parent2_name', 'parent2_phone', 'fee_payable', 'fee_status'
         ])
         st.dataframe(df)
+    else:
+        st.write("No students to display.")
 
 # Fee Management Section
 if choice == "Fee Management":
@@ -121,7 +136,7 @@ if choice == "Fee Management":
             
             if submit_button:
                 # Form validation
-                if not all([student_id, total_fees, amount_paid, balance]):
+                if not all([student_name, total_fees, amount_paid, balance]):
                     st.error("All fields except remarks are required.")
                 else:
                     fee_data = {
@@ -137,6 +152,7 @@ if choice == "Fee Management":
                         st.session_state.show_form = False
                     else:
                         st.error("Error adding fee record")
+                        st.experimental_rerun()
         if st.button("Cancel"):
             st.session_state.show_form = False
             st.experimental_rerun()
@@ -150,6 +166,8 @@ if choice == "Fee Management":
             'balance', 'remarks'
         ])
         st.dataframe(df)
+    else:
+        st.write("No students to display.")
 
 
 # Expenditure Management Section
@@ -189,6 +207,7 @@ if choice == "Expenditure Management":
                         st.session_state.show_form = False
                     else:
                         st.error("Error adding expenditure")
+                        st.experimental_rerun()
         if st.button("Cancel"):
             st.session_state.show_form = False
             st.experimental_rerun()
@@ -201,6 +220,8 @@ if choice == "Expenditure Management":
             "date","item","category","vendor","amount"
         ])
         st.dataframe(df)
+    else:
+        st.write("No students to display.")
 
 
 # Activity Management Section
@@ -268,7 +289,7 @@ if choice == "Student Activity Management":
             
             if submit_button:
                 # Form validation
-                if not all([student_id, activity_id]):
+                if not all([student_name, activity_name]):
                     st.error("All fields are required.")
                 else:
                     student_activity_data = {
@@ -318,7 +339,7 @@ if choice == "Activity Participation Management":
             
             if submit_button:
                 # Form validation
-                if not all([student_id, activity_id, term, week_or_month, participation_value]):
+                if not all([student_name, activity_name, term, frequency, status, date_paid_for,amount_paid, balance]):
                     st.error("All fields are required.")
                 else:
                     participation_data = {
@@ -373,7 +394,7 @@ if choice == "Income Management":
             
             if submit_button:
                 # Form validation
-                if not all([source, amount, date]):
+                if not all([student_name, source, amount, date]):
                     st.error("All fields are required.")
                 else:
                     income_data = {

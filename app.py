@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.DEBUG)
 class Student(db.Model):
     __tablename__ = 'students'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50))
+    name = db.Column(db.String(50), unique = True, nullable = False)
     class_name = db.Column(db.String(20))
     parent1_name = db.Column(db.String(50))
     parent1_phone = db.Column(db.String(15))
@@ -32,7 +32,7 @@ class Student(db.Model):
 class Fee(db.Model):
     __tablename__ = 'fees'
     id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('students.id'))
+    student_name = db.Column(db.String, db.ForeignKey('students.name'))
     total_fees = db.Column(db.Numeric(10, 2))
     amount_paid = db.Column(db.Numeric(10, 2))
     balance = db.Column(db.Numeric(10, 2))
@@ -50,24 +50,27 @@ class Expenditure(db.Model):
 class Activity(db.Model):
     __tablename__ = 'activities'
     id = db.Column(db.Integer, primary_key=True)
-    activity_name = db.Column(db.String(50))
+    activity_name = db.Column(db.String(50), unique = True, nullable = False)
     payment_frequency = db.Column(db.String(20))
     fee_amount = db.Column(db.Numeric(10, 2))
 
 class StudentActivity(db.Model):
     __tablename__ = 'student_activities'
-    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), primary_key=True)
-    activity_id = db.Column(db.Integer, db.ForeignKey('activities.id'), primary_key=True)
+    student_name = db.Column(db.String, db.ForeignKey('students.name'), primary_key=True)
+    activity_name = db.Column(db.String, db.ForeignKey('activities.name'), primary_key=True)
 
 class ActivityParticipation(db.Model):
     __tablename__ = 'activity_participation'
     id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('students.id'))
-    activity_id = db.Column(db.Integer, db.ForeignKey('activities.id'))
     term = db.Column(db.Integer, nullable=False)
-    week_or_month = db.Column(db.String(20))
-    participation_value = db.Column(db.Integer, nullable=False)
-    __table_args__ = (db.UniqueConstraint('student_id', 'activity_id', 'term', 'week_or_month', 'participation_value', name='unique_participation'),)
+    frequency = db.Column(db.String(20))
+    student_name = db.Column(db.String(50), db.ForeignKey('students.name'))
+    activity_name = db.Column(db.String(50), db.ForeignKey('activities.activity_name'))
+    status = db.Column(db.String(20))
+    date_paid_for = db.Column(db.Date)
+    amount_paid = db.Column(db.Numeric(10, 2))
+    balance = db.Column(db.Numeric(10, 2))
+    __table_args__ = (db.UniqueConstraint('student_name', 'activity_name', 'term', 'frequency', 'status', name='unique_participation'),)
 
 class Income(db.Model):
     __tablename__='income'
@@ -75,6 +78,7 @@ class Income(db.Model):
     source = db.Column(db.String(50))
     amount = db.Column(db.Numeric(10, 2))
     date = db.Column(db.Date)
+    student_name = db.Column(db.String(50), db.ForeignKey('students.name'))
 
 
 # Define routes for each table and handle CRUD operations
@@ -140,7 +144,7 @@ def manage_fees():
 
         try:
             new_fee = Fee(
-                student_id=data['student_id'],
+                student_name=data['student_name'],
                 total_fees=data['total_fees'],
                 amount_paid=data['amount_paid'],
                 balance=data['balance'],
@@ -159,7 +163,7 @@ def manage_fees():
     fees = Fee.query.all()
     fee_list = [{
         'id': fee.id,
-        'student_id': fee.student_id,
+        'student_name': fee.student_name,
         'total_fees': fee.total_fees,
         'amount_paid': fee.amount_paid,
         'balance': fee.balance,
@@ -262,8 +266,8 @@ def manage_student_activities():
 
         try:
             new_student_activity = StudentActivity(
-                student_id=data['student_id'],
-                activity_id=data['activity_id']
+                student_name=data['student_name'],
+                activity_name=data['activity_name']
             )
             db.session.add(new_student_activity)
             db.session.commit()
@@ -277,8 +281,8 @@ def manage_student_activities():
     logging.debug('GET request received at /student_activities endpoint')
     student_activities = StudentActivity.query.all()
     student_activity_list = [{
-        'student_id': student_activity.student_id,
-        'activity_id': student_activity.activity_id
+        'student_name': student_activity.student_name,
+        'activity_name': student_activity.activity_name
     } for student_activity in student_activities]
     logging.debug(f"Student activities retrieved: {student_activity_list}")
     return jsonify(student_activity_list)
@@ -297,11 +301,14 @@ def manage_activity_participation():
 
         try:
             new_activity_participation = ActivityParticipation(
-                student_id=data['student_id'],
-                activity_id=data['activity_id'],
+               student_name=data['student_name'],
+                activity_name=data['activity_name'],
                 term=data['term'],
-                week_or_month=data['week_or_month'],
-                participation_value=data['participation_value']
+                frequency=data['frequency'],
+                status=data['status'],
+                date_paid_for=data['date_paid_for'],
+                amount_paid=data['amount_paid'],
+                balance=data['balance']
             )
             db.session.add(new_activity_participation)
             db.session.commit()
@@ -316,11 +323,14 @@ def manage_activity_participation():
     activity_participations = ActivityParticipation.query.all()
     activity_participation_list = [{
         'id': activity_participation.id,
-        'student_id': activity_participation.student_id,
-        'activity_id': activity_participation.activity_id,
+        'student_name': activity_participation.student_name,
+        'activity_name': activity_participation.activity_name,
         'term': activity_participation.term,
-        'week_or_month': activity_participation.week_or_month,
-        'participation_value': activity_participation.participation_value
+        'frequency': activity_participation.frequency,
+        'status': activity_participation.status,
+        'date_paid_for': activity_participation.date_paid_for,
+        'amount_paid': activity_participation.amount_paid,
+        'balance': activity_participation.balance
     } for activity_participation in activity_participations]
     logging.debug(f"Activity participations retrieved: {activity_participation_list}")
     return jsonify(activity_participation_list)
@@ -341,7 +351,8 @@ def manage_income():
             new_income = Income(
                 source=data['source'],
                 amount=data['amount'],
-                date=data['date']
+                date=data['date'],
+                student_name=data['student_name']
             )
             db.session.add(new_income)
             db.session.commit()
@@ -358,7 +369,8 @@ def manage_income():
         'id': income.id,
         'source': income.source,
         'amount': income.amount,
-        'date': income.date
+        'date': income.date,
+        'student_name': income.student_name
     } for income in income_records]
     logging.debug(f"Income records retrieved: {income_list}")
     return jsonify(income_list)
