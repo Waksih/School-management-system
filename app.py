@@ -55,13 +55,13 @@ class Activity(db.Model):
     fee_amount = db.Column(db.Numeric(10, 2))
 
 class StudentActivity(db.Model):
-    __tablename__ = 'student_activities'
+    __tablename__ = 'student_activities'    
     student_name = db.Column(db.String, db.ForeignKey('students.name'), primary_key=True)
-    activity_name = db.Column(db.String, db.ForeignKey('activities.name'), primary_key=True)
+    activity_name = db.Column(db.String, db.ForeignKey('activities.activity_name'), primary_key=True)
 
 class ActivityParticipation(db.Model):
     __tablename__ = 'activity_participation'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement= True)
     term = db.Column(db.Integer, nullable=False)
     frequency = db.Column(db.String(20))
     student_name = db.Column(db.String(50), db.ForeignKey('students.name'))
@@ -112,6 +112,8 @@ def manage_students():
         except Exception as e:
             db.session.rollback()
             logging.error(f"Error adding student: {e}")
+            if "UNIQUE constraint failed" in str(e):
+                return jsonify({'error': 'A student with this name already exists'}), 400
             return jsonify({'error': str(e)}), 500
 
     logging.debug('GET request received at /students endpoint')
@@ -265,9 +267,17 @@ def manage_student_activities():
             return jsonify({'error': 'No data received'}), 400
 
         try:
+            # Check if student and activity exist
+            student_exists = db.session.query(Student).filter_by(name=data.get('student_name')).first()
+            activity_exists = db.session.query(Activity).filter_by(activity_name=data.get('activity_name')).first()
+
+            if not student_exists or not activity_exists:
+                logging.error('Student or Activity does not exist')
+                return jsonify({'error': 'Student or Activity does not exist'}), 400
+
             new_student_activity = StudentActivity(
-                student_name=data['student_name'],
-                activity_name=data['activity_name']
+                student_name=data.get('student_name'),
+                activity_name=data.get('activity_name')
             )
             db.session.add(new_student_activity)
             db.session.commit()
@@ -276,8 +286,8 @@ def manage_student_activities():
         except Exception as e:
             db.session.rollback()
             logging.error(f"Error adding student activity: {e}")
-            return jsonify({'error': str(e)}), 500
-
+            return jsonify({'error': f"{str(e)}; Data: {data}"}), 500
+        
     logging.debug('GET request received at /student_activities endpoint')
     student_activities = StudentActivity.query.all()
     student_activity_list = [{
@@ -300,6 +310,14 @@ def manage_activity_participation():
             return jsonify({'error': 'No data received'}), 400
 
         try:
+            # Check if student and activity exist
+            student_exists = db.session.query(Student).filter_by(name=data.get('student_name')).first()
+            activity_exists = db.session.query(Activity).filter_by(activity_name=data.get('activity_name')).first()
+
+            if not student_exists or not activity_exists:
+                logging.error('Student or Activity does not exist')
+                return jsonify({'error': 'Student or Activity does not exist'}), 400
+
             new_activity_participation = ActivityParticipation(
                student_name=data['student_name'],
                 activity_name=data['activity_name'],
@@ -313,10 +331,10 @@ def manage_activity_participation():
             db.session.add(new_activity_participation)
             db.session.commit()
             logging.debug(f"Activity participation added: {new_activity_participation}")
-            return jsonify({'message': 'Activity participation added successfully!'}), 201
+            return jsonify({'message': 'Participation recorded successfully!'}), 201
         except Exception as e:
             db.session.rollback()
-            logging.error(f"Error adding activity participation: {e}")
+            logging.error(f"Error adding participation record: {e}")
             return jsonify({'error': str(e)}), 500
 
     logging.debug('GET request received at /activity_participation endpoint')
@@ -332,7 +350,7 @@ def manage_activity_participation():
         'amount_paid': activity_participation.amount_paid,
         'balance': activity_participation.balance
     } for activity_participation in activity_participations]
-    logging.debug(f"Activity participations retrieved: {activity_participation_list}")
+    logging.debug(f"Participation records retrieved: {activity_participation_list}")
     return jsonify(activity_participation_list)
 
 

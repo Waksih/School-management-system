@@ -94,11 +94,11 @@ if choice == "Student Management":
                             if response.status_code == 201:
                                 st.success("Student added successfully!")
                                 st.session_state.show_form = False
-                                st.experimental_rerun()
+                                st.rerun()
                             else:
                                 error_message = response.json().get('error', 'Unknown error')
                                 st.error(f"Error adding student: {error_message}")
-
+                            
         if st.button("Cancel"):
             st.session_state.show_form = False
             st.experimental_rerun()
@@ -136,7 +136,7 @@ if choice == "Fee Management":
             
             if submit_button:
                 # Form validation
-                if not all([student_name, total_fees, amount_paid, balance]):
+                if not all([student_name, total_fees is not None,amount_paid is not None, balance is not None]):
                     st.error("All fields except remarks are required.")
                 else:
                     fee_data = {
@@ -150,12 +150,13 @@ if choice == "Fee Management":
                     if response.status_code == 201:
                         st.success("Fee record added successfully!")
                         st.session_state.show_form = False
+                        st.rerun()
                     else:
                         st.error("Error adding fee record")
-                        st.experimental_rerun()
+        
         if st.button("Cancel"):
             st.session_state.show_form = False
-            st.experimental_rerun()
+            st.rerun()
 
     # Automatically fetch and display fee records
     fees = fetch_data('fees')
@@ -167,7 +168,7 @@ if choice == "Fee Management":
         ])
         st.dataframe(df)
     else:
-        st.write("No students to display.")
+        st.write("No Fee records to display.")
 
 
 # Expenditure Management Section
@@ -191,7 +192,7 @@ if choice == "Expenditure Management":
             
             if submit_button:
                 # Form validation
-                if not all([date, item, category, vendor, amount]):
+                if not all([date, item, category, vendor, amount is not None]):
                     st.error("All fields are required.")
                 else:
                     expenditure_data = {
@@ -205,12 +206,13 @@ if choice == "Expenditure Management":
                     if response.status_code == 201:
                         st.success("Expenditure added successfully!")
                         st.session_state.show_form = False
+                        st.rerun()
                     else:
                         st.error("Error adding expenditure")
-                        st.experimental_rerun()
+                        
         if st.button("Cancel"):
             st.session_state.show_form = False
-            st.experimental_rerun()
+            st.rerun()
 
     # Automatically fetch and display expenditures
     expenditures = fetch_data('expenditures')
@@ -221,7 +223,7 @@ if choice == "Expenditure Management":
         ])
         st.dataframe(df)
     else:
-        st.write("No students to display.")
+        st.write("No expenditures to display.")
 
 
 # Activity Management Section
@@ -243,7 +245,7 @@ if choice == "Activity Management":
             
             if submit_button:
                 # Form validation
-                if not all([activity_name, payment_frequency, fee_amount]):
+                if not all([activity_name, payment_frequency, fee_amount is not None]):
                     st.error("All fields are required.")
                 else:
                     activity_data = {
@@ -255,11 +257,13 @@ if choice == "Activity Management":
                     if response.status_code == 201:
                         st.success("Activity added successfully!")
                         st.session_state.show_form = False
+                        st.rerun()
                     else:
                         st.error("Error adding activity")
+                        
         if st.button("Cancel"):
             st.session_state.show_form = False
-            st.experimental_rerun()
+            st.rerun()
 
     # Automatically fetch and display activities
     activities = fetch_data('activities')
@@ -269,6 +273,8 @@ if choice == "Activity Management":
             "activity_name", "fee_amount", "payment_frequency"
         ])
         st.dataframe(df)
+    else:
+        st.write("No activities to display.")
 
 
 # Student Activity Management Section
@@ -281,7 +287,7 @@ if choice == "Student Activity Management":
 
     if st.session_state.show_form:
         # Add student activity form
-        st.write("Add new Participation Record")
+        st.write("Add new Student Activity")
         with st.form(key='student_activity_form'):
             student_name = st.text_input("Student Name")
             activity_name = st.text_input("Activity Name")
@@ -300,11 +306,13 @@ if choice == "Student Activity Management":
                     if response.status_code == 201:
                         st.success("Student activity added successfully!")
                         st.session_state.show_form = False
+                        st.rerun()
                     else:
                         st.error("Error adding student activity")
+                        
         if st.button("Cancel"):
             st.session_state.show_form = False
-            st.experimental_rerun()
+            st.rerun()
 
     # Automatically fetch and display student activities
     student_activities = fetch_data('student_activities')
@@ -314,8 +322,10 @@ if choice == "Student Activity Management":
             "student_name", "activity_name"
         ])
         st.dataframe(df)
+    else:
+        st.write("No students activities to display.")
 
-
+        
 # Activity Participation Management Section
 if choice == "Activity Participation Management":
     st.header("Activity Participation Management")
@@ -339,7 +349,7 @@ if choice == "Activity Participation Management":
             
             if submit_button:
                 # Form validation
-                if not all([student_name, activity_name, term, frequency, status, date_paid_for,amount_paid, balance]):
+                if not all([student_name, activity_name, term, frequency, status, date_paid_for,amount_paid is not None, balance is not None]):
                     st.error("All fields are required.")
                 else:
                     participation_data = {
@@ -356,11 +366,13 @@ if choice == "Activity Participation Management":
                     if response.status_code == 201:
                         st.success("Participation record added successfully!")
                         st.session_state.show_form = False
+                        st.rerun()
                     else:
                         st.error("Error adding participation record")
+                        
         if st.button("Cancel"):
             st.session_state.show_form = False
-            st.experimental_rerun()
+            st.rerun()
 
     # Automatically fetch and display participation records
     participations = fetch_data('activity_participation')
@@ -372,6 +384,8 @@ if choice == "Activity Participation Management":
             'amount_paid', 'balance'
         ])
         st.dataframe(df)
+    else:
+        st.write("No participations to display.")
 
 
 # Income Management Section
@@ -394,7 +408,7 @@ if choice == "Income Management":
             
             if submit_button:
                 # Form validation
-                if not all([student_name, source, amount, date]):
+                if not all([student_name, source, amount is not None, date]):
                     st.error("All fields are required.")
                 else:
                     income_data = {
@@ -407,11 +421,13 @@ if choice == "Income Management":
                     if response.status_code == 201:
                         st.success("Income record added successfully!")
                         st.session_state.show_form = False
+                        st.rerun()
                     else:
                         st.error("Error adding income record")
+                        
         if st.button("Cancel"):
             st.session_state.show_form = False
-            st.experimental_rerun()
+            st.rerun()
 
     # Automatically fetch and display income records
     income_records = fetch_data('income')
@@ -421,3 +437,6 @@ if choice == "Income Management":
             "student_name", "source", "amount", "date"
         ])
         st.dataframe(df)
+    else:
+        st.write("No income records to display.")
+       
