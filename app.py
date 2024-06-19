@@ -29,6 +29,21 @@ class Student(db.Model):
     fee_payable = db.Column(db.Numeric(10, 2))
     fee_status = db.Column(db.String(20))
 
+class Daycare(db.Model):
+    __tablename__ = 'daycare'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50))
+    parent1_name = db.Column(db.String(50))
+    parent1_phone = db.Column(db.String(15))
+    parent2_name = db.Column(db.String(50))
+    parent2_phone = db.Column(db.String(15))
+    payment_mode = db.Column(db.String(15))
+    option = db.Column(db.String(15))
+    fee_payable = db.Column(db.Numeric(10, 2))
+    fee_paid = db.Column(db.Numeric(10, 2))
+    balance = db.Column(db.Numeric(10, 2))
+    status = db.Column(db.String(20))
+
 class Fee(db.Model):
     __tablename__ = 'fees'
     id = db.Column(db.Integer, primary_key=True)
@@ -87,6 +102,56 @@ class Income(db.Model):
 def manage_students():
     if request.method == 'POST':
         logging.debug('POST request received at /students endpoint')
+        data = request.get_json()
+        logging.debug(f"Received data: {data}")
+        
+        if not data:
+            logging.error('No data received in POST request')
+            return jsonify({'error': 'No data received'}), 400
+        
+        try:
+            new_student = Student(
+                name=data.get('name'),
+                class_name=data.get('class_name'),
+                parent1_name=data.get('parent1_name'),
+                parent1_phone=data.get('parent1_phone'),
+                parent2_name=data.get('parent2_name'),
+                parent2_phone=data.get('parent2_phone'),
+                fee_payable=data.get('fee_payable'),
+                fee_status=data.get('fee_status')
+            )
+            db.session.add(new_student)
+            db.session.commit()
+            logging.debug(f"Student added: {new_student}")
+            return jsonify({'message': 'Student added successfully!'}), 201
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f"Error adding student: {e}")
+            if "UNIQUE constraint failed" in str(e):
+                return jsonify({'error': 'A student with this name already exists'}), 400
+            return jsonify({'error': str(e)}), 500
+
+    logging.debug('GET request received at /students endpoint')
+    students = Student.query.all()
+    student_list = [{
+        'id': student.id,
+        'name': student.name,
+        'class_name': student.class_name,
+        'parent1_name': student.parent1_name,
+        'parent1_phone': student.parent1_phone,
+        'parent2_name': student.parent2_name,
+        'parent2_phone': student.parent2_phone,
+        'fee_payable': student.fee_payable,
+        'fee_status': student.fee_status
+    } for student in students]
+    logging.debug(f"Students retrieved: {student_list}")
+    return jsonify(student_list)
+
+
+@app.route('/daycare', methods=['GET', 'POST'])
+def manage_students():
+    if request.method == 'POST':
+        logging.debug('POST request received at /daycare endpoint')
         data = request.get_json()
         logging.debug(f"Received data: {data}")
         
