@@ -37,11 +37,6 @@ def fetch_data(endpoint):
         st.error(f"Error fetching {endpoint} data: {e}")
         return []
 
-#initialize session state for form visibility
-if "show_form" not in st.session_state:
-    st.session_state.show_form = False
-
-
 
 # Student Management Section
 if choice == "Student Management":
@@ -51,7 +46,7 @@ if choice == "Student Management":
     tab1, tab2, tab3 = st.tabs(["Students", "Daycare", "Analytics"])
 
     with tab1:
-        student_tab1, student_tab2 = st.tabs(["View Students", "Add Students"])
+        student_tab1, student_tab2 = st.tabs(["View Students", "Add Student"])
 
         #Students tab 
         with student_tab1:
@@ -110,18 +105,101 @@ if choice == "Student Management":
                                 else:
                                     error_message = response.json().get('error', 'Unknown error')
                                     st.error(f"Error adding student: {error_message}")
-                                
+                                    st.rerun()
+
+    with tab2:
+
+        daycare_tab1, daycare_tab2 = st.tabs(["View Children", "Add child"])
+
+        with daycare_tab1:
+
+            #Automatically fetch and display students
+            daycare = fetch_data('daycare')
+            if daycare:
+                #Convert list of daycare dictionaries to a Dataframe
+                df = pd.DataFrame(daycare, columns=[
+                    'name', 'parent_1_name', 'parent_1_phone', 'parent_2_name', 'parent_2_phone',
+                    'payment_mode', 'option', 'fee_payable', 'fee_paid',
+                    'balance', 'status'
+                ])
+                st.dataframe(df)
+            else:
+                st.write("No children to display.") 
+
+        with daycare_tab2:
+            #Add daycare form
+            st.write("Add a new child:")
+            with st.form(key='daycare_form'):
+                name = st.text_input("Child's Name")
+                parent_1_name = st.text_input("Parent 1 Name")
+                parent_1_phone = st.text_input("Parent 1 Phone")
+                parent_2_name = st.text_input("Parent 2 Name")
+                parent_2_phone = st.text_input("Parent 2 Phone")
+                payment_mode = st.selectbox("Payment mode", ["Daily", "Weekly", "Monthly"])
+                option = st.selectbox("Option", ["Home meals", "School meals"])
+                fee_payable = st.number_input("Fee Payable")
+                fee_paid = st.number_input("Fee Paid")
+                balance = st.number_input("Balance")
+                status = st.selectbox("Status", ["Complete", "Incomplete", "Paid", "Unpaid"])
+                submit_button = st.form_submit_button(label='Submit')
+                
+                if submit_button:
+                # Form validation
+                    if not all([name, parent_1_name, parent_1_phone, payment_mode, option, fee_payable, fee_paid, balance, status]):
+                        st.error("All fields are required.")
+                    else:
+                        # Check for duplicates
+                        daycare = fetch_data('daycare')
+                        if daycare is None:
+                            daycare = []
+                        duplicate = any(daycare for daycare in daycare if daycare['name'] == name )
+                        if duplicate:
+                            st.error("This child is already entered.")
+                        else:
+                            daycare_data = {
+                                "name": name,                                
+                                "parent_1_name": parent_1_name,
+                                "parent_1_phone": parent_1_phone,
+                                "parent_2_name": parent_2_name,
+                                "parent_2_phone": parent_2_phone,
+                                "payment_mode" : payment_mode,
+                                "option" : option,                        
+                                "fee_payable": fee_payable,
+                                "fee_paid": fee_paid,
+                                "balance" : balance,
+                                "status" : status
+                            }
+                            response = requests.post(f"{BASE_URL}/daycare", json=daycare_data)
+                            if response.status_code == 201:
+                                st.success("Child added successfully!")
+                                st.session_state.show_form = False
+                                st.rerun()
+                            else:
+                                error_message = response.json().get('error', 'Unknown error')
+                                st.error(f"Error adding child: {error_message}")
+                                st.rerun()
+                                                                       
             
 # Fee Management Section
 if choice == "Fee Management":
-    st.header("Fee Management")
+    st.title("Fee Management")
     
-    # Button to add a new fee record
-    if st.button("Add Fee Record"):
-        st.session_state.show_form = True
+    tab1, tab2, tab3 = st.tabs(["Records", "Add Record", "Analytics"])
 
-    if st.session_state.show_form:
-        # Add fee record form
+    with tab1:
+        # Automatically fetch and display fee records
+        fees = fetch_data('fees')
+        if fees:
+            # Convert list of fee dictionaries to a Dataframe
+            df = pd.DataFrame(fees, columns=[
+                'student_name', 'total_fees', 'amount_paid', 
+                'balance', 'remarks'
+            ])
+            st.dataframe(df)
+        else:
+            st.write("No Fee records to display.")
+
+    with tab2:
         st.write("Add a new Fee Record")
         with st.form(key='fee_form'):
             student_name = st.text_input("Student Name")
@@ -150,34 +228,28 @@ if choice == "Fee Management":
                         st.rerun()
                     else:
                         st.error("Error adding fee record")
-        
-        if st.button("Cancel"):
-            st.session_state.show_form = False
-            st.rerun()
-
-    # Automatically fetch and display fee records
-    fees = fetch_data('fees')
-    if fees:
-        # Convert list of fee dictionaries to a Dataframe
-        df = pd.DataFrame(fees, columns=[
-            'student_name', 'total_fees', 'amount_paid', 
-            'balance', 'remarks'
-        ])
-        st.dataframe(df)
-    else:
-        st.write("No Fee records to display.")
+                        st.rerun()
 
 
 # Expenditure Management Section
 if choice == "Expenditure Management":
-    st.header("Expenditure Management")
+    st.title("Expenditure Management")
 
-    # Button to add a new expenditure
-    if st.button("Add Expenditure"):
-        st.session_state.show_form = True
+    tab1, tab2, tab3 = st.tabs(["Expenses", "Add Expenses", "Analysis"])
 
-    if st.session_state.show_form:
-        # Add expenditure form
+    with tab1:
+        # Automatically fetch and display expenditures
+        expenditures = fetch_data('expenditures')
+        if expenditures:
+            # Convert list of expenditure dictionaries to a Dataframe
+            df = pd.DataFrame(expenditures, columns=[
+                "date","item","category","vendor","amount"
+            ])
+            st.dataframe(df)
+        else:
+            st.write("No expenditures to display.")
+
+    with tab2: 
         st.write("Add new Expenditure")
         with st.form(key='expenditure_form'):
             date = st.date_input("Date")
@@ -206,33 +278,28 @@ if choice == "Expenditure Management":
                         st.rerun()
                     else:
                         st.error("Error adding expenditure")
-                        
-        if st.button("Cancel"):
-            st.session_state.show_form = False
-            st.rerun()
+                        st.rerun()
 
-    # Automatically fetch and display expenditures
-    expenditures = fetch_data('expenditures')
-    if expenditures:
-        # Convert list of expenditure dictionaries to a Dataframe
-        df = pd.DataFrame(expenditures, columns=[
-            "date","item","category","vendor","amount"
-        ])
-        st.dataframe(df)
-    else:
-        st.write("No expenditures to display.")
-
-
+    
 # Activity Management Section
 if choice == "Activity Management":
-    st.header("Activity Management")
+    st.title("Activity Management")
 
-    # Button to add a new activity
-    if st.button("Add Activity"):
-        st.session_state.show_form = True
-
-    if st.session_state.show_form:
-        # Add activity form
+    tab1, tab2 = st.tabs(["Activities", "Add activity"])
+    
+    with tab1:
+        # Automatically fetch and display activities
+        activities = fetch_data('activities')
+        if activities:
+            # Convert list of activity dictionaries to a Dataframe
+            df = pd.DataFrame(activities, columns=[
+                "activity_name", "fee_amount", "payment_frequency"
+            ])
+            st.dataframe(df)
+        else:
+            st.write("No activities to display.")
+    
+    with tab2:
         st.write("Add new Activity")
         with st.form(key='activity_form'):
             activity_name = st.text_input("Activity Name")
@@ -257,32 +324,28 @@ if choice == "Activity Management":
                         st.rerun()
                     else:
                         st.error("Error adding activity")
-                        
-        if st.button("Cancel"):
-            st.session_state.show_form = False
-            st.rerun()
-
-    # Automatically fetch and display activities
-    activities = fetch_data('activities')
-    if activities:
-        # Convert list of activity dictionaries to a Dataframe
-        df = pd.DataFrame(activities, columns=[
-            "activity_name", "fee_amount", "payment_frequency"
-        ])
-        st.dataframe(df)
-    else:
-        st.write("No activities to display.")
+                        st.rerun()
 
 
 # Student Activity Management Section
 if choice == "Student Activity Management":
-    st.header("Student Activity Management")
+    st.title("Student Activity Management")
 
-    # Button to add a new student activity
-    if st.button("Add Student Activity"):
-        st.session_state.show_form = True
+    tab1,tab2, tab3 = st.tabs(["Student Activities","Add Std Activity","Analysis"])
 
-    if st.session_state.show_form:
+    with tab1:
+        # Automatically fetch and display student activities
+        student_activities = fetch_data('student_activities')
+        if student_activities:
+            # Convert list of expenditure dictionaries to a Dataframe
+            df = pd.DataFrame(student_activities, columns=[
+                "student_name", "activity_name"
+            ])
+            st.dataframe(df)
+        else:
+            st.write("No students activities to display.")
+
+    with tab2:
         # Add student activity form
         st.write("Add new Student Activity")
         with st.form(key='student_activity_form'):
@@ -306,33 +369,30 @@ if choice == "Student Activity Management":
                         st.rerun()
                     else:
                         st.error("Error adding student activity")
-                        
-        if st.button("Cancel"):
-            st.session_state.show_form = False
-            st.rerun()
+                        st.rerun()
 
-    # Automatically fetch and display student activities
-    student_activities = fetch_data('student_activities')
-    if student_activities:
-        # Convert list of expenditure dictionaries to a Dataframe
-        df = pd.DataFrame(student_activities, columns=[
-            "student_name", "activity_name"
-        ])
-        st.dataframe(df)
-    else:
-        st.write("No students activities to display.")
 
-        
 # Activity Participation Management Section
 if choice == "Activity Participation Management":
-    st.header("Activity Participation Management")
+    st.title("Activity Participation Management")
     
-    #Button to add new activity participation record
-    if st.button("Add Participation Record"):
-        st.session_state.show_form = True
+    tab1, tab2, tab3 = st.tabs(["Participation records","Add record","Analysis"])
 
-    if st.session_state.show_form:
-    # Add participation record form
+    with tab1:
+        # Automatically fetch and display participation records
+        participations = fetch_data('activity_participation')
+        if participations:
+            # Convert list of participation dictionaries to a Dataframe
+            df = pd.DataFrame(participations, columns=[
+                'student_name', 'activity_name', 'term', 
+                'frequency', 'status', 'date_paid_for', 
+                'amount_paid', 'balance'
+            ])
+            st.dataframe(df)
+        else:
+            st.write("No participations to display.")
+    
+    with tab2:
         with st.form(key='participation_form'):
             student_name = st.text_input("Student Name")
             activity_name = st.text_input("Activity Name")
@@ -366,34 +426,28 @@ if choice == "Activity Participation Management":
                         st.rerun()
                     else:
                         st.error("Error adding participation record")
-                        
-        if st.button("Cancel"):
-            st.session_state.show_form = False
-            st.rerun()
-
-    # Automatically fetch and display participation records
-    participations = fetch_data('activity_participation')
-    if participations:
-        # Convert list of participation dictionaries to a Dataframe
-        df = pd.DataFrame(participations, columns=[
-            'student_name', 'activity_name', 'term', 
-            'frequency', 'status', 'date_paid_for', 
-            'amount_paid', 'balance'
-        ])
-        st.dataframe(df)
-    else:
-        st.write("No participations to display.")
+                        st.rerun()
 
 
 # Income Management Section
 if choice == "Income Management":
-    st.header("Income Management")
-    
-    # Button to add a new income record
-    if st.button("Add Income Record"):
-        st.session_state.show_form = True
+    st.title("Income Management")
 
-    if st.session_state.show_form:
+    tab1, tab2, tab3 = st.tabs(["Income records","Add income","Analysis"])
+
+    with tab1:
+        # Automatically fetch and display income records
+        income_records = fetch_data('income')
+        if income_records:
+            # Convert list of income dictionaries to a Dataframe
+            df = pd.DataFrame(income_records, columns=[
+                "student_name", "source", "amount", "date"
+            ])
+            st.dataframe(df)
+        else:
+            st.write("No income records to display.")
+    
+    with tab2:
         # Add income record form
         st.write("Add new income record")
         with st.form(key='income_form'):
@@ -421,19 +475,5 @@ if choice == "Income Management":
                         st.rerun()
                     else:
                         st.error("Error adding income record")
-                        
-        if st.button("Cancel"):
-            st.session_state.show_form = False
-            st.rerun()
-
-    # Automatically fetch and display income records
-    income_records = fetch_data('income')
-    if income_records:
-        # Convert list of income dictionaries to a Dataframe
-        df = pd.DataFrame(income_records, columns=[
-            "student_name", "source", "amount", "date"
-        ])
-        st.dataframe(df)
-    else:
-        st.write("No income records to display.")
+                        st.rerun()
        

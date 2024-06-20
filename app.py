@@ -33,12 +33,12 @@ class Daycare(db.Model):
     __tablename__ = 'daycare'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50))
-    parent1_name = db.Column(db.String(50))
-    parent1_phone = db.Column(db.String(15))
-    parent2_name = db.Column(db.String(50))
-    parent2_phone = db.Column(db.String(15))
+    parent_1_name = db.Column(db.String(50))
+    parent_1_phone = db.Column(db.String(15))
+    parent_2_name = db.Column(db.String(50))
+    parent_2_phone = db.Column(db.String(15))
     payment_mode = db.Column(db.String(15))
-    option = db.Column(db.String(15))
+    option = db.Column(db.String(20))
     fee_payable = db.Column(db.Numeric(10, 2))
     fee_paid = db.Column(db.Numeric(10, 2))
     balance = db.Column(db.Numeric(10, 2))
@@ -149,7 +149,7 @@ def manage_students():
 
 
 @app.route('/daycare', methods=['GET', 'POST'])
-def manage_students():
+def manage_daycare():
     if request.method == 'POST':
         logging.debug('POST request received at /daycare endpoint')
         data = request.get_json()
@@ -160,42 +160,46 @@ def manage_students():
             return jsonify({'error': 'No data received'}), 400
         
         try:
-            new_student = Student(
+            new_daycare = Daycare(
                 name=data.get('name'),
-                class_name=data.get('class_name'),
-                parent1_name=data.get('parent1_name'),
-                parent1_phone=data.get('parent1_phone'),
-                parent2_name=data.get('parent2_name'),
-                parent2_phone=data.get('parent2_phone'),
+                parent_1_name=data.get('parent_1_name'),
+                parent_1_phone=data.get('parent_1_phone'),
+                parent_2_name=data.get('parent_2_name'),
+                parent_2_phone=data.get('parent_2_phone'),
+                payment_mode=data.get('payment_mode'),
+                option=data.get('option'),
                 fee_payable=data.get('fee_payable'),
-                fee_status=data.get('fee_status')
+                fee_paid=data.get('fee_paid'),
+                balance=data.get('balance'),
+                status=data.get('status')
             )
-            db.session.add(new_student)
+            db.session.add(new_daycare)
             db.session.commit()
-            logging.debug(f"Student added: {new_student}")
-            return jsonify({'message': 'Student added successfully!'}), 201
+            logging.debug(f"Child added: {new_daycare}")
+            return jsonify({'message': 'Child added successfully!'}), 201
         except Exception as e:
             db.session.rollback()
-            logging.error(f"Error adding student: {e}")
-            if "UNIQUE constraint failed" in str(e):
-                return jsonify({'error': 'A student with this name already exists'}), 400
+            logging.error(f"Error adding child: {e}")            
             return jsonify({'error': str(e)}), 500
 
-    logging.debug('GET request received at /students endpoint')
-    students = Student.query.all()
-    student_list = [{
-        'id': student.id,
-        'name': student.name,
-        'class_name': student.class_name,
-        'parent1_name': student.parent1_name,
-        'parent1_phone': student.parent1_phone,
-        'parent2_name': student.parent2_name,
-        'parent2_phone': student.parent2_phone,
-        'fee_payable': student.fee_payable,
-        'fee_status': student.fee_status
-    } for student in students]
-    logging.debug(f"Students retrieved: {student_list}")
-    return jsonify(student_list)
+    logging.debug('GET request received at /daycare endpoint')
+    daycare = Daycare.query.all()
+    daycare_list = [{
+        'id': daycare.id,
+        'name': daycare.name,
+        'parent_1_name': daycare.parent_1_name,
+        'parent_1_phone': daycare.parent_1_phone,
+        'parent_2_name': daycare.parent_2_name,
+        'parent_2_phone': daycare.parent_2_phone,
+        'payment_mode' : daycare.payment_mode,
+        'option' : daycare.option,
+        'fee_payable': daycare.fee_payable,
+        'fee_paid': daycare.fee_paid,
+        'balance' : daycare.balance,
+        'status' : daycare.status
+    } for daycare in daycare]
+    logging.debug(f"Daycare retrieved: {daycare_list}")
+    return jsonify(daycare_list)
 
 
 @app.route('/fees', methods=['GET', 'POST'])
