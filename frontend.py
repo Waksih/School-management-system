@@ -45,76 +45,73 @@ if "show_form" not in st.session_state:
 
 # Student Management Section
 if choice == "Student Management":
-    st.header("Student Management")
+    st.title("Student Management")
 
-    
-    # Button to add a new student
-    if st.button("Add Student"):
-        st.session_state.show_form = True
+    #create tabs
+    tab1, tab2, tab3 = st.tabs(["Students", "Daycare", "Analytics"])
 
-    # Display the form if show_form is True
-    if st.session_state.show_form:
-        #Add student form
-        st.write("Add a new student:")
-        with st.form(key='student_form'):
-                name = st.text_input("Student Name")
-                class_name = st.text_input("Class Name")
-                parent1_name = st.text_input("Parent 1 Name")
-                parent1_phone = st.text_input("Parent 1 Phone")
-                parent2_name = st.text_input("Parent 2 Name")
-                parent2_phone = st.text_input("Parent 2 Phone")
-                fee_payable = st.number_input("Fee Payable")
-                fee_status = st.selectbox("Fee Status", ["Complete", "Incomplete"])
-                submit_button = st.form_submit_button(label='Submit')
-                
-                if submit_button:
-                # Form validation
-                    if not all([name, class_name, parent1_name, parent1_phone, parent2_name, parent2_phone, fee_payable, fee_status]):
-                        st.error("All fields are required.")
-                    else:
-                        # Check for duplicates
-                        students = fetch_data('students')
-                        if students is None:
-                            students = []
-                        duplicate = any(student for student in students if student['name'] == name and student['class_name'] == class_name)
-                        if duplicate:
-                            st.error("This student is already entered.")
+    with tab1:
+        student_tab1, student_tab2 = st.tabs(["View Students", "Add Students"])
+
+        #Students tab 
+        with student_tab1:
+            #Fetch student data
+            students = fetch_data('students')
+            if students:
+            #Convert list of student dictionaries to a Dataframe
+                df = pd.DataFrame(students, columns=[
+                'name', 'class_name', 'parent1_name', 'parent1_phone',
+                'parent2_name', 'parent2_phone', 'fee_payable', 'fee_status'
+                ])
+                st.dataframe(df)
+            else:
+                st.write("No students to display.")
+
+        with student_tab2:
+            st.write("Add a new student:")
+            with st.form(key='student_form'):
+                    name = st.text_input("Student Name")
+                    class_name = st.text_input("Class Name")
+                    parent1_name = st.text_input("Parent 1 Name")
+                    parent1_phone = st.text_input("Parent 1 Phone")
+                    parent2_name = st.text_input("Parent 2 Name")
+                    parent2_phone = st.text_input("Parent 2 Phone")
+                    fee_payable = st.number_input("Fee Payable")
+                    fee_status = st.selectbox("Fee Status", ["Complete", "Incomplete"])
+                    submit_button = st.form_submit_button(label='Submit')
+                    
+                    if submit_button:
+                    # Form validation
+                        if not all([name, class_name, parent1_name, parent1_phone, parent2_name, parent2_phone, fee_payable, fee_status]):
+                            st.error("All fields are required.")
                         else:
-                            student_data = {
-                                "name": name,
-                                "class_name": class_name,
-                                "parent1_name": parent1_name,
-                                "parent1_phone": parent1_phone,
-                                "parent2_name": parent2_name,
-                                "parent2_phone": parent2_phone,
-                                "fee_payable": fee_payable,
-                                "fee_status": fee_status
-                            }
-                            response = requests.post(f"{BASE_URL}/students", json=student_data)
-                            if response.status_code == 201:
-                                st.success("Student added successfully!")
-                                st.session_state.show_form = False
-                                st.rerun()
+                            # Check for duplicates
+                            students = fetch_data('students')
+                            if students is None:
+                                students = []
+                            duplicate = any(student for student in students if student['name'] == name and student['class_name'] == class_name)
+                            if duplicate:
+                                st.error("This student is already entered.")
                             else:
-                                error_message = response.json().get('error', 'Unknown error')
-                                st.error(f"Error adding student: {error_message}")
-                            
-        if st.button("Cancel"):
-            st.session_state.show_form = False
-            st.experimental_rerun()
-
-    #Automatically fetch and display students
-    students = fetch_data('students')
-    if students:
-        #Convert list of student dictionaries to a Dataframe
-        df = pd.DataFrame(students, columns=[
-            'name', 'class_name', 'parent1_name', 'parent1_phone',
-            'parent2_name', 'parent2_phone', 'fee_payable', 'fee_status'
-        ])
-        st.dataframe(df)
-    else:
-        st.write("No students to display.")
-
+                                student_data = {
+                                    "name": name,
+                                    "class_name": class_name,
+                                    "parent1_name": parent1_name,
+                                    "parent1_phone": parent1_phone,
+                                    "parent2_name": parent2_name,
+                                    "parent2_phone": parent2_phone,
+                                    "fee_payable": fee_payable,
+                                    "fee_status": fee_status
+                                }
+                                response = requests.post(f"{BASE_URL}/students", json=student_data)
+                                if response.status_code == 201:
+                                    st.success("Student added successfully!")
+                                    st.rerun()
+                                else:
+                                    error_message = response.json().get('error', 'Unknown error')
+                                    st.error(f"Error adding student: {error_message}")
+                                
+            
 # Fee Management Section
 if choice == "Fee Management":
     st.header("Fee Management")
