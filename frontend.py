@@ -2,10 +2,85 @@ import streamlit as st
 import requests
 import pandas as pd
 
+# Apply custom CSS
+st.markdown(
+    """
+    <style>
+    /* Adjust the sidebar width */
+    .st-emotion-cache-1itdyc2 {
+        width: 200px !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+
+    /* Optimize text spacing within the sidebar */
+    .st-ag.st-ce.st-cf.st-cg.st-as.st-ch.st-ci {
+        padding: 0 !important;
+    }
+
+    /* Label adjustments */
+    .st-aj.st-ag.st-cj.st-as.st-aw.st-ck.st-ax.st-b1.st-cl.st-cm.st-cn.st-co.st-cp.st-cq {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Div adjustments */
+    .st-b0.st-dd.st-cr.st-cs.st-ct.st-cu.st-cv.st-ag.st-cw.st-bv.st-cx.st-av.st-cy.st-cz.st-bi.st-d0.st-d1.st-d2.st-bg.st-d3 {
+        padding: 0 !important;
+    }
+
+    /* Paragraph adjustments */
+    .st-d0.st-da.st-c1.st-bp.st-db.st-br.st-bs.st-bt.st-bu.st-af.st-dc p {
+        margin: 0 !important;
+        padding: 5px 10px !important;
+    }
+
+    /* Change font size of main tabs */
+    div[data-testid="stHorizontalBlock"] > div > div {
+        font-size: 2rem;
+    }
+
+    /* Change font size of sub-tabs */
+    div[data-testid="stHorizontalBlock"] > div > div > div > div {
+        font-size: 1.2rem;
+    }
+
+    /* Title customization */
+    .main-title {
+        text-align: center;
+        font-size: 4rem;
+        color: #ff6347;
+        font-weight: bold;
+        
+    }
+
+    /* Subtitle customization */
+    .sub-title {
+        text-align: center;
+        font-size: 2.5rem;
+        color: #ffffff;
+    }
+
+    /* Section headers customization */
+    .section-header {
+        text-align: center;
+        font-size: 2rem;
+        color: #ffffff;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 
 BASE_URL = 'http://localhost:5000'
 
-st.title("School Management System")
+
+# Title at the top
+st.markdown("<div class='main-title'>The Spark Playhouse</div>", unsafe_allow_html=True)
+st.markdown("<div class='sub-title'>School Management System</div>", unsafe_allow_html=True)
+
 
 #Sidebar for navigation
 st.sidebar.title("Menu")
@@ -40,7 +115,7 @@ def fetch_data(endpoint):
 
 # Student Management Section
 if choice == "Student Management":
-    st.title("Student Management")
+    st.markdown("<div class='section-header'>Student Management</div>", unsafe_allow_html=True)
 
     #create tabs
     tab1, tab2, tab3 = st.tabs(["Students", "Daycare", "Analytics"])
@@ -182,8 +257,8 @@ if choice == "Student Management":
             
 # Fee Management Section
 if choice == "Fee Management":
-    st.title("Fee Management")
-    
+    st.markdown("<div class='section-header'>Fee Management</div>", unsafe_allow_html=True)
+
     tab1, tab2, tab3 = st.tabs(["Records", "Add Record", "Analytics"])
 
     with tab1:
@@ -233,7 +308,7 @@ if choice == "Fee Management":
 
 # Expenditure Management Section
 if choice == "Expenditure Management":
-    st.title("Expenditure Management")
+    st.markdown("<div class='section-header'>Expenditure Management</div>", unsafe_allow_html=True)
 
     tab1, tab2, tab3 = st.tabs(["Expenses", "Add Expenses", "Analysis"])
 
@@ -283,7 +358,7 @@ if choice == "Expenditure Management":
     
 # Activity Management Section
 if choice == "Activity Management":
-    st.title("Activity Management")
+    st.markdown("<div class='section-header'>Activity Management</div>", unsafe_allow_html=True)
 
     tab1, tab2 = st.tabs(["Activities", "Add activity"])
     
@@ -329,7 +404,7 @@ if choice == "Activity Management":
 
 # Student Activity Management Section
 if choice == "Student Activity Management":
-    st.title("Student Activity Management")
+    st.markdown("<div class='section-header'>Student Activity Management</div>", unsafe_allow_html=True)
 
     tab1,tab2, tab3 = st.tabs(["Student Activities","Add Std Activity","Analysis"])
 
@@ -374,8 +449,8 @@ if choice == "Student Activity Management":
 
 # Activity Participation Management Section
 if choice == "Activity Participation Management":
-    st.title("Activity Participation Management")
-    
+    st.markdown("<div class='section-header'>Activity Participation Management</div>", unsafe_allow_html=True)
+
     tab1, tab2, tab3 = st.tabs(["Participation records","Add record","Analysis"])
 
     with tab1:
@@ -431,7 +506,7 @@ if choice == "Activity Participation Management":
 
 # Income Management Section
 if choice == "Income Management":
-    st.title("Income Management")
+    st.markdown("<div class='section-header'>Income Management</div>", unsafe_allow_html=True)
 
     tab1, tab2, tab3 = st.tabs(["Income records","Add income","Analysis"])
 
