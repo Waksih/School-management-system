@@ -2,15 +2,15 @@ import streamlit as st
 import requests
 import pandas as pd
 
+st.set_page_config(layout = "wide")
+
 # Apply custom CSS
 st.markdown(
     """
     <style>
-    body {
-    display: flex;
-    margin: 0;
-    padding: 0;
-    background-color: #121212; /* Ensure the background color matches */
+    
+    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+    font-size:1.2rem;
     }
 
     .sidebar.st-emotion-cache-1itdyc2 {
@@ -22,15 +22,6 @@ st.markdown(
         background-color: #1f1f1f; /* Sidebar background color to match the theme */
     }
 
-    .main-content-container {
-        flex-grow: 1;
-        margin-left: 220px; /* Adjust according to sidebar width + padding */
-        padding: 20px 20px 20px 20px;
-        box-sizing: border-box;
-        max-width: calc(100% - 220px); /* Ensure content doesn't overflow */
-        margin-top: 0; /* Ensure content starts at the top */
-        padding-top: 0; /* Remove any padding at the top */
-    }
 
     /* Existing styles */
     .st-emotion-cache-1aege4m {
@@ -62,16 +53,6 @@ st.markdown(
     .st-d0.st-da.st-c1.st-bp.st-db.st-br.st-bs.st-bt.st-bu.st-af.st-dc p {
         margin: 0 !important;
         padding: 5px 10px !important;
-    }
-
-    /* Change font size of main tabs */
-    div[data-testid="stHorizontalBlock"] > div > div {
-        font-size: 2rem;
-    }
-
-    /* Change font size of sub-tabs */
-    div[data-testid="stHorizontalBlock"] > div > div > div > div {
-        font-size: 1.2rem;
     }
 
     /* Title customization */
@@ -282,8 +263,38 @@ if choice == "Students":
                                 error_message = response.json().get('error', 'Unknown error')
                                 st.error(f"Error adding child: {error_message}")
                                 st.rerun()
-                                                                       
+
+    with tab3:
+           students = fetch_data('students')
+           daycare_data = fetch_data('daycare')
+
+           if students:
+               #calctulate number of students
+               total_students = len(students)
+               
+               #calculate number of students per class
+               df_students = pd.DataFrame(students)
+               students_per_class = df_students['class_name'].value_counts()
             
+            if daycare_data:
+                #calculate total number of daycare children
+                total_children = len(daycare_data)
+                
+                
+            
+            #display students and daycare in one line
+            col1, col2 = st.columns(2)
+           with col1:
+               st.write(f"Total Students : {total_students}")
+            with col2:
+               st.write(f"Total Daycare Children : {total_children}")
+
+            if students:
+               st.write(f"Total Students per Class : ")
+               st.write(students_per_class)
+               
+
+                    
 # Fee Management Section
 if choice == "Fees":
     st.markdown("<div class='section-header'>Fee Management</div>", unsafe_allow_html=True)
