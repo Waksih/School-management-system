@@ -6,11 +6,40 @@ import pandas as pd
 st.markdown(
     """
     <style>
-    /* Adjust the sidebar width */
-    .st-emotion-cache-1itdyc2 {
+    body {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    background-color: #121212; /* Ensure the background color matches */
+    }
+
+    .sidebar.st-emotion-cache-1itdyc2 {
         width: 200px !important;
         padding-left: 10px !important;
         padding-right: 10px !important;
+        position: fixed;
+        height: 100%;
+        background-color: #1f1f1f; /* Sidebar background color to match the theme */
+    }
+
+    .main-content-container {
+        flex-grow: 1;
+        margin-left: 220px; /* Adjust according to sidebar width + padding */
+        padding: 20px 20px 20px 20px;
+        box-sizing: border-box;
+        max-width: calc(100% - 220px); /* Ensure content doesn't overflow */
+        margin-top: 0; /* Ensure content starts at the top */
+        padding-top: 0; /* Remove any padding at the top */
+    }
+
+    /* Existing styles */
+    .st-emotion-cache-1aege4m {
+        width: 100% !important; /* Take full width of the container */
+        max-width: 100%; /* Ensure it doesn't exceed the container */
+    }
+
+    .st-emotion-cache-ul70r3 {
+        max-width: 100%; /* Ensure inner content also respects the container width */
     }
 
     /* Optimize text spacing within the sidebar */
@@ -84,7 +113,7 @@ st.markdown("<div class='sub-title'>School Management System</div>", unsafe_allo
 
 #Sidebar for navigation
 st.sidebar.title("Menu")
-choice = st.sidebar.radio("Go to", ["Student Management", "Fee Management", "Expenditure Management", "Activity Management", "Student Activity Management", "Activity Participation Management", "Income Management"])
+choice = st.sidebar.radio("Go to", ["Students", "Fees", "Expenditure", "Activities", "Student Activity", "Activity Participation", "Income"])
 
 #Function to handle API responses
 def handle_response(response):
@@ -114,7 +143,7 @@ def fetch_data(endpoint):
 
 
 # Student Management Section
-if choice == "Student Management":
+if choice == "Students":
     st.markdown("<div class='section-header'>Student Management</div>", unsafe_allow_html=True)
 
     #create tabs
@@ -256,7 +285,7 @@ if choice == "Student Management":
                                                                        
             
 # Fee Management Section
-if choice == "Fee Management":
+if choice == "Fees":
     st.markdown("<div class='section-header'>Fee Management</div>", unsafe_allow_html=True)
 
     tab1, tab2, tab3 = st.tabs(["Records", "Add Record", "Analytics"])
@@ -307,7 +336,7 @@ if choice == "Fee Management":
 
 
 # Expenditure Management Section
-if choice == "Expenditure Management":
+if choice == "Expenditure":
     st.markdown("<div class='section-header'>Expenditure Management</div>", unsafe_allow_html=True)
 
     tab1, tab2, tab3 = st.tabs(["Expenses", "Add Expenses", "Analysis"])
@@ -357,7 +386,7 @@ if choice == "Expenditure Management":
 
     
 # Activity Management Section
-if choice == "Activity Management":
+if choice == "Activities":
     st.markdown("<div class='section-header'>Activity Management</div>", unsafe_allow_html=True)
 
     tab1, tab2 = st.tabs(["Activities", "Add activity"])
@@ -403,7 +432,7 @@ if choice == "Activity Management":
 
 
 # Student Activity Management Section
-if choice == "Student Activity Management":
+if choice == "Student Activity":
     st.markdown("<div class='section-header'>Student Activity Management</div>", unsafe_allow_html=True)
 
     tab1,tab2, tab3 = st.tabs(["Student Activities","Add Std Activity","Analysis"])
@@ -448,7 +477,7 @@ if choice == "Student Activity Management":
 
 
 # Activity Participation Management Section
-if choice == "Activity Participation Management":
+if choice == "Activity Participation":
     st.markdown("<div class='section-header'>Activity Participation Management</div>", unsafe_allow_html=True)
 
     tab1, tab2, tab3 = st.tabs(["Participation records","Add record","Analysis"])
@@ -505,7 +534,7 @@ if choice == "Activity Participation Management":
 
 
 # Income Management Section
-if choice == "Income Management":
+if choice == "Income":
     st.markdown("<div class='section-header'>Income Management</div>", unsafe_allow_html=True)
 
     tab1, tab2, tab3 = st.tabs(["Income records","Add income","Analysis"])
