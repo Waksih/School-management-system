@@ -276,20 +276,20 @@ if choice == "Students":
                df_students = pd.DataFrame(students)
                students_per_class = df_students['class_name'].value_counts()
             
-            if daycare_data:
-                #calculate total number of daycare children
-                total_children = len(daycare_data)
+           if daycare_data:
+               #calculate total number of daycare children
+               total_children = len(daycare_data)
                 
                 
             
             #display students and daycare in one line
-            col1, col2 = st.columns(2)
+           col1, col2 = st.columns(2)
            with col1:
                st.write(f"Total Students : {total_students}")
-            with col2:
+           with col2:
                st.write(f"Total Daycare Children : {total_children}")
 
-            if students:
+           if students:
                st.write(f"Total Students per Class : ")
                st.write(students_per_class)
                
