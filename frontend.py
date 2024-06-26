@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
+import plotly.express as px
 
 st.set_page_config(layout = "wide")
 
@@ -15,7 +16,7 @@ st.markdown(
 
     .sidebar.st-emotion-cache-1itdyc2 {
         width: 200px !important;
-        padding-left: 10px !important;
+        padding-left: 1px !important;
         padding-right: 10px !important;
         position: fixed;
         height: 100%;
@@ -293,8 +294,7 @@ if choice == "Students":
                st.write(f"Total Students per Class : ")
                st.write(students_per_class)
                
-
-                    
+                   
 # Fee Management Section
 if choice == "Fees":
     st.markdown("<div class='section-header'>Fee Management</div>", unsafe_allow_html=True)
