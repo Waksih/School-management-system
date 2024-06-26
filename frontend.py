@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 import plotly.express as px
 
+
 st.set_page_config(layout = "wide")
 
 # Apply custom CSS
@@ -16,7 +17,7 @@ st.markdown(
 
     .sidebar.st-emotion-cache-1itdyc2 {
         width: 200px !important;
-        padding-left: 1px !important;
+        padding-left: 10px !important;
         padding-right: 10px !important;
         position: fixed;
         height: 100%;
@@ -269,6 +270,11 @@ if choice == "Students":
            students = fetch_data('students')
            daycare_data = fetch_data('daycare')
 
+           total_students = 0
+           total_children = 0
+
+           students_per_class = pd.Series(dtype=int)
+
            if students:
                #calctulate number of students
                total_students = len(students)
@@ -280,8 +286,21 @@ if choice == "Students":
            if daycare_data:
                #calculate total number of daycare children
                total_children = len(daycare_data)
-                
-                
+
+               #Add daycare children as their own class 
+               daycare_series = pd.Series(total_children, index=["Daycare"])
+               students_per_class = pd.concat([students_per_class, daycare_series])
+
+            #create a pie chart
+               students_per_class_df = students_per_class.reset_index()
+               students_per_class_df.columns = ['Class','Count'] #rename columns for clarity
+               fig = px.pie(
+                   students_per_class_df,
+                   names='Class',
+                   values='Count',
+                   title='Disribution of Students per class'
+               )
+               st.plotly_chart(fig)
             
             #display students and daycare in one line
            col1, col2 = st.columns(2)
@@ -290,11 +309,12 @@ if choice == "Students":
            with col2:
                st.write(f"Total Daycare Children : {total_children}")
 
-           if students:
+           if not students_per_class.empty:
                st.write(f"Total Students per Class : ")
                st.write(students_per_class)
+
                
-                   
+                    
 # Fee Management Section
 if choice == "Fees":
     st.markdown("<div class='section-header'>Fee Management</div>", unsafe_allow_html=True)
@@ -340,12 +360,62 @@ if choice == "Fees":
                     if response.status_code == 201:
                         st.success("Fee record added successfully!")
                         st.session_state.show_form = False
-                        st.rerun()
+                        st.experimental_rerun()
                     else:
                         st.error("Error adding fee record")
                         st.rerun()
 
+    with tab3:
+        #fetch fees data
+        fees = fetch_data('fees')
+        daycare = fetch_data('daycare')
 
+        if fees:
+            df = pd.DataFrame(fees)
+
+            #ensure the columns are numeric
+            df['amount_paid'] = pd.to_numeric(df['amount_paid'],errors='coerce')
+            df['balance'] = pd.to_numeric(df['balance'],errors='coerce')
+            df['total_fees'] = pd.to_numeric(df['total_fees'],errors='coerce')
+            
+            #calculations
+            total_paid = df['amount_paid'].sum()
+            total_balance = df['balance'].sum()
+            fees_expected = df['total_fees'].sum()
+
+            #create a pie-chart
+            fig = px.pie(
+                names = ['Amount Paid', 'Balance'],
+                values= [total_paid, total_balance],
+                title="Student Fees"
+            )
+            st.plotly_chart(fig)
+
+            #create columns
+            col1, col2 = st.columns(2)
+
+            with col1:
+                #display calculatons
+                st.write(f"Total Fee Expected : {fees_expected:,.2f}")
+                st.write(f"Total Amount Paid : {total_paid:,.2f}")
+                st.write(f"Total Fee Balance : {total_balance:,.2f}")
+
+            with col2: 
+                if daycare:
+                    df=pd.DataFrame(daycare)
+
+                    df['fee_paid'] = pd.to_numeric(df['fee_paid'],errors='coerce')
+                    df['balance'] = pd.to_numeric(df['balance'],errors='coerce')
+
+                    #calculations
+                    fee_paid = df['fee_paid'].sum()
+                    total_balance = df['balance'].sum()
+
+                    #display calculatons
+                    st.write(f"Daycare Total Collected : {fee_paid:,.2f}")
+                    st.write(f"Daycare Monthly balance : {total_balance:,.2f}")
+                                         
+            
 # Expenditure Management Section
 if choice == "Expenditure":
     st.markdown("<div class='section-header'>Expenditure Management</div>", unsafe_allow_html=True)
@@ -395,7 +465,79 @@ if choice == "Expenditure":
                         st.error("Error adding expenditure")
                         st.rerun()
 
-    
+    with tab3:
+        expenditures = fetch_data('expenditures')
+        if expenditures:
+            df = pd.DataFrame(expenditures, columns=["date", "item", "category", "vendor", "amount"])
+            df['date'] = pd.to_datetime(df['date'])
+            df['month'] = df['date'].dt.to_period('M').astype(str)
+            df['amount'] = pd.to_numeric(df['amount'],errors='coerce')
+            
+        # Create bar chart for expenditures per category
+            fig_category = px.bar(
+                df.groupby('category')['amount'].sum().reset_index(),
+                x='category',
+                y='amount',
+                title='Expenditures per Category'
+            )
+            st.plotly_chart(fig_category)
+
+
+        # Calculate the amount per category
+            amount_per_category = df.groupby('category')['amount'].sum().sort_values(ascending=False)
+            st.write("Amount per Category:")
+            st.write(amount_per_category)
+
+        # Create bar chart for expenditures per vendor
+            fig_vendor = px.bar(
+                df.groupby('vendor')['amount'].sum().reset_index(),
+                x='vendor',
+                y='amount',
+                title='Expenditures per Vendor'
+            )
+            st.plotly_chart(fig_vendor)
+
+            # Calculate the amount per vendor
+            amount_per_vendor = df.groupby('vendor')['amount'].sum().sort_values(ascending=False)
+            st.write("Amount per Vendor:")
+            st.write(amount_per_vendor)
+
+            
+            # Create bar chart for expenditures per month
+            fig_month = px.bar(
+                df.groupby('month')['amount'].sum().reset_index(),
+                x='month',
+                y='amount',
+                title='Expenditures per Month'
+            )
+            st.plotly_chart(fig_month)
+
+            # Calculate the total amount per month
+            total_amount_per_month = df.groupby('month')['amount'].sum().sort_values(ascending=False)
+            st.write("Total Amount per Month:")
+            st.write(total_amount_per_month)
+
+            # Calculate the amount per category for each month
+            amount_per_category_month = df.groupby(['month', 'category'])['amount'].sum().unstack().fillna(0)
+            st.write("Amount per Category per Month:")
+            st.write(amount_per_category_month)
+
+
+            
+            # Responsive chart with user inputs for X and Y axes
+            st.write("Create Custom Chart")
+            x_axis = st.selectbox("Select X-axis variable", options=df.columns, index=5)
+            y_axis = st.selectbox("Select Y-axis variable", options=['amount'], index=0)
+
+            fig_custom = px.bar(
+                df.groupby(x_axis)[y_axis].sum().reset_index(),
+                x=x_axis,
+                y=y_axis,
+                title=f'Expenditures by {x_axis}'
+            )
+            st.plotly_chart(fig_custom)
+
+
 # Activity Management Section
 if choice == "Activities":
     st.markdown("<div class='section-header'>Activity Management</div>", unsafe_allow_html=True)
