@@ -312,8 +312,7 @@ if choice == "Students":
            if not students_per_class.empty:
                st.write(f"Total Students per Class : ")
                st.write(students_per_class)
-
-               
+          
                     
 # Fee Management Section
 if choice == "Fees":
@@ -537,6 +536,22 @@ if choice == "Expenditure":
             )
             st.plotly_chart(fig_custom)
 
+            # Customizable input for category-wise item expenditure
+            st.write("Category-wise Item Expenditure")
+            category_option = st.selectbox("Select Category", options=amount_per_category.index)
+            category_items = df[df['category'] == category_option].groupby('item')['amount'].sum().sort_values(ascending=False)
+            st.write(f"Items in {category_option} Category:")
+            st.write(category_items)
+
+            # Customizable input for vendor-wise item expenditure
+            st.write("Vendor-wise Item Expenditure")
+            vendor_option = st.selectbox("Select Vendor", options=amount_per_vendor.index)
+            vendor_items = df[df['vendor'] == vendor_option].groupby('item')['amount'].sum().sort_values(ascending=False)
+            st.write(f"Items from {vendor_option}:")
+            st.write(vendor_items)
+        else:
+            st.write("No expenditure data to analyze.")
+
 
 # Activity Management Section
 if choice == "Activities":
@@ -628,6 +643,27 @@ if choice == "Student Activity":
                         st.error("Error adding student activity")
                         st.rerun()
 
+    with tab3:
+        student_activites = fetch_data('student_activities')
+        if student_activities:
+            df = pd.DataFrame(student_activities, columns=["student_name", "activity_name"])
+            
+            #calculate the number of students per activity
+            students_per_activity = df['activity_name'].value_counts().reset_index()
+            students_per_activity.columns = ['activity_name', 'count']
+            st.write("Number of students per activity:")
+            st.write(students_per_activity)
+
+            #create a pie chart
+            fig = px.pie(
+                students_per_activity,
+                values='count',
+                names='activity_name',
+                title='Distribution of students per activity'
+            )
+            st.plotly_chart(fig)
+        else:
+            st.write("No student activity data to analyze")
 
 # Activity Participation Management Section
 if choice == "Activity Participation":
