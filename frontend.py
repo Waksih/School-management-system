@@ -60,7 +60,7 @@ st.markdown(
     /* Title customization */
     .main-title {
         text-align: center;
-        font-size: 4rem;
+        font-size: 5rem;
         color: #ff6347;
         font-weight: bold;
         
@@ -651,9 +651,7 @@ if choice == "Student Activity":
             #calculate the number of students per activity
             students_per_activity = df['activity_name'].value_counts().reset_index()
             students_per_activity.columns = ['activity_name', 'count']
-            st.write("Number of students per activity:")
-            st.write(students_per_activity)
-
+            
             #create a pie chart
             fig = px.pie(
                 students_per_activity,
@@ -662,8 +660,13 @@ if choice == "Student Activity":
                 title='Distribution of students per activity'
             )
             st.plotly_chart(fig)
+
+            st.write("Number of students per activity:")
+            st.write(students_per_activity)
+
         else:
             st.write("No student activity data to analyze")
+
 
 # Activity Participation Management Section
 if choice == "Activity Participation":
@@ -715,11 +718,61 @@ if choice == "Activity Participation":
                     response = requests.post(f"{BASE_URL}/activity_participation", json=participation_data)
                     if response.status_code == 201:
                         st.success("Participation record added successfully!")
-                        st.session_state.show_form = False
                         st.rerun()
                     else:
                         st.error("Error adding participation record")
                         st.rerun()
+
+    with tab3:
+        participation_records = fetch_data('activity_participation')
+        if participation_records:
+            df = pd.DataFrame(participation_records, columns=[
+                "student_name", "activity_name", "term", "frequency", "status", "date_paid_for", "amount_paid", "balance"
+            ])
+
+            # Convert date_paid_for to datetime, handle errors gracefully
+            df['date_paid_for'] = pd.to_datetime(df['date_paid_for'], errors='coerce')
+            
+            # Drop rows with invalid dates
+            df = df.dropna(subset=['date_paid_for'])
+            
+
+            #Convert date_paid_for to datetime
+            df['month'] = df['date_paid_for'].dt.to_period('M').astype(str)
+            df['amount_paid'] = pd.to_numeric(df['amount_paid'],errors='coerce')
+            df['balance'] = pd.to_numeric(df['balance'],errors='coerce')
+            
+            #calculate the amount paid per activity per month
+            amount_paid_per_activity_month = df.groupby(['month','activity_name'])['amount_paid'].sum().reset_index()
+            amount_paid_per_activity_month['month'] = amount_paid_per_activity_month['month'].astype(str)
+
+            
+            #calculate the total amount paid per month
+            amount_paid_per_month = df.groupby('month')['amount_paid'].sum().reset_index()
+            amount_paid_per_month['month'] = amount_paid_per_month['month'].astype(str)
+
+            
+            #create a stacked bar chart
+            fig = px.bar(
+                amount_paid_per_activity_month,
+                x='month',
+                y='amount_paid',
+                color='activity_name',
+                title='Amount paid per month per activity',
+                labels={'amount_paid':'Amount Paid','month':'Month','activity_name': 'Activity'}
+            )
+            st.plotly_chart(fig)
+
+            #display the result
+            st.write("Amount Paid per Activity per Month:")
+            st.write(amount_paid_per_activity_month)
+
+            #display the result
+            st.write("Total Amount Paid per Month")
+            st.write(amount_paid_per_month)
+
+        else:
+            st.write("No participation data to analyze.")    
 
 
 # Income Management Section
@@ -769,4 +822,49 @@ if choice == "Income":
                     else:
                         st.error("Error adding income record")
                         st.rerun()
-       
+
+    with tab3:
+        st.write("Income Analysis")
+        income_records = fetch_data('income')
+        if income_records:
+            df = pd.DataFrame(income_records, columns=[
+                "student_name", "source", "amount", "date"
+            ])
+            
+            # Convert date to datetime, handle errors gracefully
+            df['date'] = pd.to_datetime(df['date'], errors='coerce')
+            
+            # Drop rows with invalid dates
+            df = df.dropna(subset=['date'])
+            
+            
+            # Calculate the total amount received per month per source
+            df['month'] = df['date'].dt.to_period('M').astype(str)
+            df['amount'] = pd.to_numeric(df['amount'],errors='coerce')
+            amount_per_month_source = df.groupby(['month', 'source'])['amount'].sum().reset_index()
+            amount_per_month_source['month'] = amount_per_month_source['month'].astype(str)
+            
+            # Calculate the total amount received per source
+            total_amount_per_source = df.groupby('source')['amount'].sum().reset_index()
+            
+
+            
+            # Create a stacked bar chart
+            fig = px.bar(
+                amount_per_month_source,
+                x='month',
+                y='amount',
+                color='source',
+                title='Amount Received per Month per Source',
+                labels={'amount': 'Amount Received', 'month': 'Month', 'source': 'Source'}
+            )
+            st.plotly_chart(fig)
+            
+            # Display the results below the graph
+            st.write("Total Amount Received per Source:")
+            st.write(total_amount_per_source)
+            
+            st.write("Total Amount Received per Month per Source:")
+            st.write(amount_per_month_source)
+        else:
+            st.write("No income data to analyze.") 
