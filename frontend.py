@@ -125,6 +125,7 @@ def fetch_data(endpoint):
         return []
 
 
+
 # Student Management Section
 if choice == "Students":
     st.markdown("<div class='section-header'>Student Management</div>", unsafe_allow_html=True)
@@ -794,10 +795,19 @@ if choice == "Income":
             st.write("No income records to display.")
     
     with tab2:
+        students = fetch_data('students')
+        daycare_data = fetch_data('daycare')
+
+        student_names = []
+        if students:
+            student_names.extend([student['name']for student in students])
+        if daycare_data:
+            student_names.extend([child['name']for child in daycare_data])
+
         # Add income record form
         st.write("Add new income record")
         with st.form(key='income_form'):
-            student_name = st.text_input("Student Name")
+            student_name_input = st.text_input("Student Name")            
             source = st.text_input("Source")
             amount = st.number_input("Amount")
             date = st.date_input("Date")
