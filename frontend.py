@@ -335,9 +335,18 @@ if choice == "Fees":
             st.write("No Fee records to display.")
 
     with tab2:
+        students = fetch_data('students')
+        daycare_data = fetch_data('daycare')
+
+        student_names = [""]
+        if students:
+            student_names.extend([student['name']for student in students])
+        if daycare_data:
+            student_names.extend([child['name']for child in daycare_data])
+
         st.write("Add a new Fee Record")
         with st.form(key='fee_form'):
-            student_name = st.text_input("Student Name")
+            student_name_input = st.selectbox("Student Name",options=student_names)
             total_fees = st.number_input("Total Fees")
             amount_paid = st.number_input("Amount Paid")
             balance = st.number_input("Balance")
@@ -449,21 +458,33 @@ if choice == "Expenditure":
                 if not all([date, item, category, vendor, amount is not None]):
                     st.error("All fields are required.")
                 else:
-                    expenditure_data = {
-                        "date": str(date),
-                        "item": item,
-                        "category": category,
-                        "vendor": vendor,
-                        "amount": amount
-                    }
-                    response = requests.post(f"{BASE_URL}/expenditures", json=expenditure_data)
-                    if response.status_code == 201:
-                        st.success("Expenditure added successfully!")
-                        st.session_state.show_form = False
-                        st.rerun()
+                    #fetch existing expenditures to check for duplicates
+                    expenditures = fetch_data('expenditures')
+                    df = pd.DataFrame(expenditures, columns=[
+                        "date", "item", "category", "vendor", "amount"
+                    ])
+                    duplicate_check = df[
+                        (df['date'] == str(date))&
+                        (df['item'] == item)&
+                        (df['amount'] == amount)
+                    ]
+                    if not duplicate_check.empty:
+                        st.error("Duplicate expenditure record found. Please check the details.")
                     else:
-                        st.error("Error adding expenditure")
-                        st.rerun()
+                        expenditure_data = {
+                            "date": str(date),
+                            "item": item,
+                            "category": category,
+                            "vendor": vendor,
+                            "amount": amount
+                        }
+                        response = requests.post(f"{BASE_URL}/expenditures", json=expenditure_data)
+                        if response.status_code == 201:
+                            st.success("Expenditure added successfully!")
+                            st.rerun()
+                        else:
+                            st.error("Error adding expenditure")
+                            st.rerun()
 
     with tab3:
         expenditures = fetch_data('expenditures')
@@ -619,10 +640,19 @@ if choice == "Student Activity":
             st.write("No students activities to display.")
 
     with tab2:
+        students = fetch_data('students')
+        daycare_data = fetch_data('daycare')
+
+        student_names = [""]
+        if students:
+            student_names.extend([student['name']for student in students])
+        if daycare_data:
+            student_names.extend([child['name']for child in daycare_data])
+
         # Add student activity form
         st.write("Add new Student Activity")
         with st.form(key='student_activity_form'):
-            student_name = st.text_input("Student Name")
+            student_name_input = st.selectbox("Student Name", options=student_names)
             activity_name = st.text_input("Activity Name")
             submit_button = st.form_submit_button(label='Submit')
             
@@ -690,12 +720,21 @@ if choice == "Activity Participation":
             st.write("No participations to display.")
     
     with tab2:
+        students = fetch_data('students')
+        daycare_data = fetch_data('daycare')
+
+        student_names = [""]
+        if students:
+            student_names.extend([student['name']for student in students])
+        if daycare_data:
+            student_names.extend([child['name']for child in daycare_data])
+
         with st.form(key='participation_form'):
-            student_name = st.text_input("Student Name")
+            student_name_input = st.selectbox("Student Name", options=student_names)
             activity_name = st.text_input("Activity Name")
             term = st.number_input("Term", min_value=1)
             frequency = st.selectbox("Frequency", ["Daily","Weekly","Monthly","termly"])
-            status = st.text_input("Status")
+            status = st.selectbox("Status",["Complete","Incomplete","Paid","Unpaid"])
             date_paid_for = st.date_input("Date Paid For")
             amount_paid = st.number_input("Amount Paid")
             balance = st.number_input("Balance")
@@ -798,7 +837,7 @@ if choice == "Income":
         students = fetch_data('students')
         daycare_data = fetch_data('daycare')
 
-        student_names = []
+        student_names = [""]
         if students:
             student_names.extend([student['name']for student in students])
         if daycare_data:
@@ -807,13 +846,13 @@ if choice == "Income":
         # Add income record form
         st.write("Add new income record")
         with st.form(key='income_form'):
-            student_name_input = st.text_input("Student Name")            
+            student_name_input = st.selectbox("Student Name", options=student_names)            
             source = st.text_input("Source")
             amount = st.number_input("Amount")
             date = st.date_input("Date")
             submit_button = st.form_submit_button(label='Submit')
             
-            if submit_button:
+            if submit_button:    
                 # Form validation
                 if not all([student_name, source, amount is not None, date]):
                     st.error("All fields are required.")
