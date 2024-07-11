@@ -444,6 +444,10 @@ if choice == "Expenditure":
             st.write("No expenditures to display.")
 
     with tab2: 
+        exp = fetch_data('expenditures')
+        
+
+
         st.write("Add new Expenditure")
         with st.form(key='expenditure_form'):
             date = st.date_input("Date")
@@ -458,34 +462,26 @@ if choice == "Expenditure":
                 if not all([date, item, category, vendor, amount is not None]):
                     st.error("All fields are required.")
                 else:
-                    #fetch existing expenditures to check for duplicates
-                    expenditures = fetch_data('expenditures')
-                    df = pd.DataFrame(expenditures, columns=[
-                        "date", "item", "category", "vendor", "amount"
-                    ])
-                    duplicate_check = df[
-                        (df['date'] == str(date))&
-                        (df['item'] == item)&
-                        (df['amount'] == amount)
-                    ]
-                    if not duplicate_check.empty:
-                        st.error("Duplicate expenditure record found. Please check the details.")
-                    else:
-                        expenditure_data = {
-                            "date": str(date),
-                            "item": item,
-                            "category": category,
-                            "vendor": vendor,
-                            "amount": amount
-                        }
-                        response = requests.post(f"{BASE_URL}/expenditures", json=expenditure_data)
-                        if response.status_code == 201:
-                            st.success("Expenditure added successfully!")
-                            st.rerun()
-                        else:
-                            st.error("Error adding expenditure")
-                            st.rerun()
+                    formatted_date = date.strftime('%a, %d %b %Y')
 
+                    expenditure_data = {
+                        "date": str(date),
+                        "item": item,
+                        "category": category,
+                        "vendor": vendor,
+                        "amount": amount
+                    }
+                    
+                            
+                #fetch existing expenditures to check for duplicates
+                expenditures = fetch_data('expenditures')
+                if expenditures:
+                    df = pd.DataFrame(expenditures)
+                    df['date'] = pd.to_datetime(df['date']).dt.strftime('%a, %d %b %Y')
+                return df.to_dict('records')
+                
+
+                
     with tab3:
         expenditures = fetch_data('expenditures')
         if expenditures:
