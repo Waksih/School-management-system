@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import logging
-
+from datetime import date
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost/school_management'
@@ -257,7 +257,7 @@ def manage_expenditures():
 
         try:
             new_expenditure = Expenditure(
-                date=data['date'],
+                date=date.fromisoformat(data['date']),
                 item=data['item'],
                 category=data['category'],
                 vendor=data['vendor'],
