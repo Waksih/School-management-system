@@ -1071,8 +1071,9 @@ if choice == "Income":
                         st.rerun()
 
     with tab3:
-        st.write("Income Analysis")
+        st.write("Income & Profit Analysis")
         income_records = fetch_data("income")
+        expenditure_records = fetch_data("expenditures")
         if income_records:
             df = pd.DataFrame(
                 income_records, columns=["student_name", "source", "amount", "date"]
