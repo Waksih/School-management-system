@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import logging
-from datetime import date
+from datetime import datetime   
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost/school_management'
@@ -256,8 +256,9 @@ def manage_expenditures():
             return jsonify({'error': 'No data received'}), 400
 
         try:
+            date_obj = datetime.strptime(data['date'], '%a, %d %b %Y').date()
             new_expenditure = Expenditure(
-                date=date.fromisoformat(data['date']),
+                date=date_obj,
                 item=data['item'],
                 category=data['category'],
                 vendor=data['vendor'],
@@ -271,7 +272,7 @@ def manage_expenditures():
             db.session.rollback()
             logging.error(f"Error adding expenditure: {e}")
             return jsonify({'error': str(e)}), 500
-
+    
     logging.debug('GET request received at /expenditures endpoint')
     expenditures = Expenditure.query.all()
     expenditure_list = [{
