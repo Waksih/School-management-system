@@ -1102,7 +1102,8 @@ if choice == "Income":
     with tab3:
         st.write("Income & Profit Analysis")
         income_records = fetch_data("income")
-        
+        expenditure_records = fetch_data("expenditures")
+
         if income_records:
             df = pd.DataFrame(
                 income_records, columns=["student_name", "source", "amount", "date"]
@@ -1150,3 +1151,53 @@ if choice == "Income":
             st.write(amount_per_month_source)
         else:
             st.write("No income data to analyze.")
+        if income_records and expenditure_records:
+            income_df = pd.DataFrame(income_records, columns=["student_name", "source", "amount", "date"])
+            expenditure_df = pd.DataFrame(expenditure_records, columns=["date", "item", "category", "vendor", "amount"])
+
+            # Convert date to datetime and amount to numeric for both dataframes
+            for df in [income_df, expenditure_df]:
+                df["date"] = pd.to_datetime(df["date"], errors="coerce")
+                df["amount"] = pd.to_numeric(df["amount"], errors="coerce")
+                df["month"] = df["date"].dt.to_period("M").astype(str)
+
+            # Group by month and sum the amounts
+            monthly_income = income_df.groupby("month")["amount"].sum().reset_index()
+            monthly_expenditure = expenditure_df.groupby("month")["amount"].sum().reset_index()
+
+            # Merge income and expenditure data
+            profit_analysis = pd.merge(monthly_income, monthly_expenditure, on="month", suffixes=('_income', '_expenditure'))
+            
+            # Calculate profit
+            profit_analysis['profit'] = profit_analysis['amount_income'] - profit_analysis['amount_expenditure']
+
+            # Display the profit analysis
+            st.write("Monthly Profit Analysis:")
+            st.dataframe(profit_analysis)
+
+            # Create a line chart for profit analysis
+            fig = px.line(profit_analysis, x="month", y=["amount_income", "amount_expenditure", "profit"],
+                        title="Monthly Income, Expenditure, and Profit",
+                        labels={"value": "Amount", "month": "Month", "variable": "Category"},
+                        color_discrete_map={"amount_income": "green", "amount_expenditure": "red", "profit": "blue"})
+            st.plotly_chart(fig)
+
+            # Calculate and display total profit
+            total_income = income_df["amount"].sum()
+            total_expenditure = expenditure_df["amount"].sum()
+            total_profit = total_income - total_expenditure
+
+            # Create a DataFrame for the summary
+            summary_df = pd.DataFrame({
+                'Category': ['Total Income', 'Total Expenditure', 'Total Profit'],
+                'Amount (Ksh.)': [total_income, total_expenditure, total_profit]
+            })
+
+            # Format the 'Amount' column
+            summary_df['Amount (Ksh.)'] = summary_df['Amount (Ksh.)'].apply(lambda x: f"{x:,.2f}")
+
+            # Display the summary table
+            st.write("Financial Summary:")
+            st.table(summary_df.set_index('Category'))
+        else:
+            st.write("Insufficient data for profit analysis.")
