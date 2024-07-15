@@ -2,7 +2,8 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import logging
-from datetime import datetime   
+from datetime import datetime  
+from sqlalchemy.exc import IntegrityError 
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost/school_management'
@@ -268,6 +269,10 @@ def manage_expenditures():
             db.session.commit()
             logging.debug(f"Expenditure added: {new_expenditure}")
             return jsonify({'message': 'Expenditure added successfully!'}), 201
+        except IntegrityError:
+            db.session.rollback()
+            return jsonify({"error": "Duplicate entry. This expenditure already exists."}), 409
+            
         except Exception as e:
             db.session.rollback()
             logging.error(f"Error adding expenditure: {e}")
@@ -436,16 +441,21 @@ def manage_income():
             return jsonify({'error': 'No data received'}), 400
 
         try:
+            date_obj = datetime.strptime(data['date'], '%a, %d %b %Y').date()
             new_income = Income(
                 source=data['source'],
                 amount=data['amount'],
-                date=data['date'],
+                date=date_obj,
                 student_name=data['student_name']
             )
             db.session.add(new_income)
             db.session.commit()
             logging.debug(f"Income record added: {new_income}")
             return jsonify({'message': 'Income record added successfully!'}), 201
+        except IntegrityError:
+            db.session.rollback()
+            return jsonify({"error": "Duplicate entry. This expenditure already exists."}), 409
+                              
         except Exception as e:
             db.session.rollback()
             logging.error(f"Error adding income record: {e}")

@@ -171,7 +171,7 @@ if choice == "Students":
                         "fee_status",
                     ],
                 )
-                st.dataframe(df)
+                st.dataframe(df, use_container_width=True)
             else:
                 st.write("No students to display.")
 
@@ -264,7 +264,7 @@ if choice == "Students":
                         "status",
                     ],
                 )
-                st.dataframe(df)
+                st.dataframe(df, use_container_width=True)
             else:
                 st.write("No children to display.")
 
@@ -417,7 +417,7 @@ if choice == "Fees":
                     "remarks",
                 ],
             )
-            st.dataframe(df)
+            st.dataframe(df, use_container_width=True)
         else:
             st.write("No Fee records to display.")
 
@@ -444,7 +444,7 @@ if choice == "Fees":
                 # Form validation
                 if not all(
                     [
-                        student_names,
+                        student_name_input,
                         total_fees is not None,
                         amount_paid is not None,
                         balance is not None,
@@ -453,7 +453,7 @@ if choice == "Fees":
                     st.error("All fields except remarks are required.")
                 else:
                     fee_data = {
-                        "student_name": student_names,
+                        "student_name": student_name_input,
                         "total_fees": total_fees,
                         "amount_paid": amount_paid,
                         "balance": balance,
@@ -538,7 +538,7 @@ if choice == "Expenditure":
             )
             df["date"] = pd.to_datetime(df["date"]).dt.strftime("%a, %d %b %Y")
 
-            st.dataframe(df)
+            st.dataframe(df, use_container_width=True)
         else:
             st.write("No expenditures to display.")
 
@@ -597,6 +597,8 @@ if choice == "Expenditure":
                         if response.status_code == 201:
                             st.success("Expenditure added successfully!")
                             st.rerun()
+                        elif response.status_code == 409:
+                            st.error("Duplicate entry. This expenditure already exists.")
                         else:
                             error_message = response.json().get('error', 'Unknown error occurred')
                             st.error(f"Error adding expenditure: {error_message}")
@@ -727,7 +729,7 @@ if choice == "Activities":
             df = pd.DataFrame(
                 activities, columns=["activity_name", "fee_amount", "payment_frequency"]
             )
-            st.dataframe(df)
+            st.dataframe(df,use_container_width=True)
         else:
             st.write("No activities to display.")
 
@@ -803,11 +805,11 @@ if choice == "Student Activity":
 
             if submit_button:
                 # Form validation
-                if not all([student_names, activity_name]):
+                if not all([student_name_input, activity_name]):
                     st.error("All fields are required.")
                 else:
                     student_activity_data = {
-                        "student_name": student_names,
+                        "student_name": student_name_input,
                         "activity_name": activity_name,
                     }
                     response = requests.post(
@@ -875,7 +877,7 @@ if choice == "Activity Participation":
                     "balance",
                 ],
             )
-            st.dataframe(df)
+            st.dataframe(df,use_container_width=True)
         else:
             st.write("No participations to display.")
 
@@ -908,7 +910,7 @@ if choice == "Activity Participation":
                 # Form validation
                 if not all(
                     [
-                        student_names,
+                        student_name_input,
                         activity_name,
                         term,
                         frequency,
@@ -921,7 +923,7 @@ if choice == "Activity Participation":
                     st.error("All fields are required.")
                 else:
                     participation_data = {
-                        "student_name": student_names,
+                        "student_name": student_name_input,
                         "activity_name": activity_name,
                         "term": term,
                         "frequency": frequency,
@@ -1027,53 +1029,80 @@ if choice == "Income":
             df = pd.DataFrame(
                 income_records, columns=["student_name", "source", "amount", "date"]
             )
-            st.dataframe(df)
+            df["date"] = pd.to_datetime(df["date"]).dt.strftime("%a, %d %b %Y")
+
+            st.dataframe(df,use_container_width=True)
         else:
             st.write("No income records to display.")
 
     with tab2:
+        income = fetch_data("income")
         students = fetch_data("students")
         daycare_data = fetch_data("daycare")
 
+        source = [""]
         student_names = [""]
+
         if students:
             student_names.extend([student["name"] for student in students])
         if daycare_data:
             student_names.extend([child["name"] for child in daycare_data])
-
+        if income:
+            unique_sources = set(income["source"] for income in income if income["source"])
+            source.extend(sorted(unique_sources))
+            
         # Add income record form
         st.write("Add new income record")
         with st.form(key="income_form"):
             student_name_input = st.selectbox("Student Name", options=student_names)
-            source = st.text_input("Source")
+            source = st.selectbox("Source", options=source)
             amount = st.number_input("Amount")
             date = st.date_input("Date")
             submit_button = st.form_submit_button(label="Submit")
 
             if submit_button:
                 # Form validation
-                if not all([student_names, source, amount is not None, date]):
+                if not all([student_name_input, source, amount is not None, date]):
                     st.error("All fields are required.")
+                
                 else:
-                    income_data = {
-                        "student_name": student_names,
-                        "source": source,
-                        "amount": amount,
-                        "date": str(date),
-                    }
-                    response = requests.post(f"{BASE_URL}/income", json=income_data)
-                    if response.status_code == 201:
-                        st.success("Income record added successfully!")
-                        st.session_state.show_form = False
-                        st.rerun()
-                    else:
-                        st.error("Error adding income record")
-                        st.rerun()
+                    formatted_date = date.strftime("%a, %d %b %Y")
+
+                    # Fetch existing expenditures to check for duplicates
+                    income = fetch_data("income")
+                    df = pd.DataFrame(income)
+
+                    duplicate_check = df[
+                        (df["date"] == formatted_date)
+                        & (df["source"] == source)
+                        & (df["amount"] == float(amount))
+                        & (df["student_name"]==student_name_input)
+                    ]
+                    if not duplicate_check.empty:
+                        st.error( "Duplicate income record found. Please check the details.")
+
+                    else:                    
+                        income_data = {
+                                "student_name": student_name_input,
+                                "source": source,
+                                "amount": amount,
+                                "date": formatted_date,
+                            }
+                        response = requests.post(f"{BASE_URL}/income", json=income_data)
+                        if response.status_code == 201:
+                            st.success("Income record added successfully!")
+                            st.rerun()
+                        elif response.status_code == 409:
+                            st.error("Duplicate entry. This expenditure already exists.")
+                            st.rerun()
+                        else:
+                            st.error("Error adding income record")
+                            st.rerun()
 
     with tab3:
         st.write("Income & Profit Analysis")
         income_records = fetch_data("income")
-        expenditure_records = fetch_data("expenditures")
+        
         if income_records:
             df = pd.DataFrame(
                 income_records, columns=["student_name", "source", "amount", "date"]
