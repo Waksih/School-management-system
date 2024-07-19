@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from decimal import Decimal
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -124,6 +125,17 @@ def manage_students():
             )
             db.session.add(new_student)
             db.session.commit()
+            # Create initial fee record
+            new_fee = Fee(
+                student_name=new_student.name,
+                total_fees=new_student.fee_payable,
+                amount_paid=0,
+                balance=new_student.fee_payable,
+                remarks="Initial fee record"
+            )
+            db.session.add(new_fee)
+            db.session.commit()
+            
             logging.debug(f"Student added: {new_student}")
             return jsonify({'message': 'Student added successfully!'}), 201
         except Exception as e:
@@ -210,8 +222,12 @@ def manage_fees(student_name = None):
     if request.method == 'GET':
         if student_name:
             #fetch fee record for a specific student
+            logging.debug(f"Fetching fee record for student: {student_name}")
+            
             fee_record = Fee.query.filter_by(student_name=student_name).first()
             if fee_record:
+                logging.debug(f"Fee record found: {fee_record}")
+                
                 return jsonify({
                     'student_name': fee_record.student_name,
                     'total_fees': fee_record.total_fees,
@@ -220,6 +236,8 @@ def manage_fees(student_name = None):
                     'remarks': fee_record.remarks
                 })
             else:
+                logging.error(f"Fee record not found for student: {student_name}")
+                
                 return jsonify ({'error': 'Fee record not found'}), 404
         else:
             logging.debug('GET request received at /fees endpoint')
@@ -235,15 +253,23 @@ def manage_fees(student_name = None):
             logging.debug(f"Fees retrieved: {fee_list}")
             return jsonify(fee_list)
     elif request.method == 'PUT':
+        logging.debug(f"PUT request received to update fee record for student: {student_name}")
+        
         #Update fee record for a specific student
         fee_record = Fee.query.filter_by(student_name=student_name).first()
         if not fee_record:
+            logging.error(f"Fee record not found for student: {student_name}")
+            
             return jsonify({'error':'Fee record not found'}),404
         data = request.get_json()
         if not data:
+            logging.error('No data received in PUT request')
+           
             return jsonify({'error':'No data received'}), 400
 
         try:
+            logging.debug(f"Current fee record: {fee_record}")
+            
             fee_record.total_fees = data.get('total_fees', fee_record.total_fees)
             fee_record.amount_paid = data.get('amount_paid', fee_record.amount_paid)
             fee_record.balance = data.get('balance', fee_record.balance)
@@ -457,7 +483,7 @@ def manage_income():
             date_obj = datetime.strptime(data['date'], '%a, %d %b %Y').date()
             new_income = Income(
                 source=data['source'],
-                amount=data['amount'],
+                amount=Decimal(str(data['amount'])),
                 date=date_obj,
                 student_name=data['student_name']
             )
@@ -466,11 +492,15 @@ def manage_income():
 
             #if the source is fees, update the fees table
             if data['source'] == "Fees":
+                logging.debug(f"Attempting to update fee record for student: {data['student_name']}")               
                 fee_record = Fee.query.filter_by(student_name=data['student_name']).first()
                 if fee_record:
-                    fee_record.amount_paid += float(data['amount'])
+                    logging.debug(f"Fee record found. Current amount_paid: {fee_record.amount_paid}")                   
+                    fee_record.amount_paid += Decimal(str(data['amount']))
                     fee_record.balance = fee_record.total_fees - fee_record.amount_paid
                     db.session.commit()
+                    logging.debug(f"Fee record updated. New amount_paid: {fee_record.amount_paid}, New balance: {fee_record.balance}")
+                   
                     return jsonify({
                         'message': 'Income record added and fee record updated successfully!',
                         'updated_fee': {
@@ -481,6 +511,8 @@ def manage_income():
                         }
                     }), 201
                 else:
+                    logging.error(f"Fee record not found for student: {data['student_name']}")
+                   
                     return jsonify({'error': 'Fee record not found for this student'}), 404
 
 
@@ -488,7 +520,9 @@ def manage_income():
             return jsonify({'message': 'Income record added successfully!'}), 201
         except IntegrityError:
             db.session.rollback()
-            return jsonify({"error": "Duplicate entry. This expenditure already exists."}), 409
+            logging.error(f"IntegrityError: {str(e)}")
+            
+            return jsonify({"error": "Duplicate entry. This income already exists."}), 409
         except Exception as e:
             db.session.rollback()
             logging.error(f"Error adding income record: {e}")
