@@ -1,8 +1,7 @@
-import streamlit as st
-import requests
 import pandas as pd
 import plotly.express as px
-
+import requests
+import streamlit as st
 
 st.set_page_config(layout="wide")
 
@@ -232,6 +231,19 @@ if choice == "Students":
                             )
                             if response.status_code == 201:
                                 st.success("Student added successfully!")
+                                # Create initial fee record
+                                fee_data = {
+                                    "student_name": name,
+                                    "total_fees": fee_payable,
+                                    "amount_paid": 0,
+                                    "balance": fee_payable,
+                                }
+                                fee_response = requests.post(f"{BASE_URL}/fees", json=fee_data)
+                                if fee_response.status_code == 201:
+                                    st.success("Initial fee record created successfully!")
+                                else:
+                                    st.error("Error creating initial fee record")
+                                
                                 st.rerun()
                             else:
                                 error_message = response.json().get(
@@ -400,7 +412,7 @@ if choice == "Fees":
         "<div class='section-header'>Fee Management</div>", unsafe_allow_html=True
     )
 
-    tab1, tab2, tab3 = st.tabs(["Records", "Add Record", "Analytics"])
+    tab1, tab3 = st.tabs(["Records", "Analytics"])
 
     with tab1:
         # Automatically fetch and display fee records
@@ -420,53 +432,6 @@ if choice == "Fees":
             st.dataframe(df, use_container_width=True)
         else:
             st.write("No Fee records to display.")
-
-    with tab2:
-        students = fetch_data("students")
-        daycare_data = fetch_data("daycare")
-
-        student_names = [""]
-        if students:
-            student_names.extend([student["name"] for student in students])
-        if daycare_data:
-            student_names.extend([child["name"] for child in daycare_data])
-
-        st.write("Add a new Fee Record")
-        with st.form(key="fee_form"):
-            student_name_input = st.selectbox("Student Name", options=student_names)
-            total_fees = st.number_input("Total Fees")
-            amount_paid = st.number_input("Amount Paid")
-            balance = st.number_input("Balance")
-            remarks = st.text_area("Remarks")
-            submit_button = st.form_submit_button(label="Submit")
-
-            if submit_button:
-                # Form validation
-                if not all(
-                    [
-                        student_name_input,
-                        total_fees is not None,
-                        amount_paid is not None,
-                        balance is not None,
-                    ]
-                ):
-                    st.error("All fields except remarks are required.")
-                else:
-                    fee_data = {
-                        "student_name": student_name_input,
-                        "total_fees": total_fees,
-                        "amount_paid": amount_paid,
-                        "balance": balance,
-                        "remarks": remarks,
-                    }
-                    response = requests.post(f"{BASE_URL}/fees", json=fee_data)
-                    if response.status_code == 201:
-                        st.success("Fee record added successfully!")
-                        st.session_state.show_form = False
-                        st.experimental_rerun()
-                    else:
-                        st.error("Error adding fee record")
-                        st.rerun()
 
     with tab3:
         # fetch fees data
@@ -1034,71 +999,6 @@ if choice == "Income":
             st.dataframe(df,use_container_width=True)
         else:
             st.write("No income records to display.")
-
-    with tab2:
-        income = fetch_data("income")
-        students = fetch_data("students")
-        daycare_data = fetch_data("daycare")
-
-        source = [""]
-        student_names = [""]
-
-        if students:
-            student_names.extend([student["name"] for student in students])
-        if daycare_data:
-            student_names.extend([child["name"] for child in daycare_data])
-        if income:
-            unique_sources = set(income["source"] for income in income if income["source"])
-            source.extend(sorted(unique_sources))
-            
-        # Add income record form
-        st.write("Add new income record")
-        with st.form(key="income_form"):
-            student_name_input = st.selectbox("Student Name", options=student_names)
-            source = st.selectbox("Source", options=source)
-            amount = st.number_input("Amount")
-            date = st.date_input("Date")
-            submit_button = st.form_submit_button(label="Submit")
-
-            if submit_button:
-                # Form validation
-                if not all([student_name_input, source, amount is not None, date]):
-                    st.error("All fields are required.")
-                
-                else:
-                    formatted_date = date.strftime("%a, %d %b %Y")
-
-                    # Fetch existing expenditures to check for duplicates
-                    income = fetch_data("income")
-                    df = pd.DataFrame(income)
-
-                    duplicate_check = df[
-                        (df["date"] == formatted_date)
-                        & (df["source"] == source)
-                        & (df["amount"] == float(amount))
-                        & (df["student_name"]==student_name_input)
-                    ]
-                    if not duplicate_check.empty:
-                        st.error( "Duplicate income record found. Please check the details.")
-
-                    else:                    
-                        income_data = {
-                                "student_name": student_name_input,
-                                "source": source,
-                                "amount": amount,
-                                "date": formatted_date,
-                            }
-                        response = requests.post(f"{BASE_URL}/income", json=income_data)
-                        if response.status_code == 201:
-                            st.success("Income record added successfully!")
-                            st.rerun()
-                        elif response.status_code == 409:
-                            st.error("Duplicate entry. This expenditure already exists.")
-                            st.rerun()
-                        else:
-                            st.error("Error adding income record")
-                            st.rerun()
-
     with tab3:
         st.write("Income & Profit Analysis")
         income_records = fetch_data("income")
@@ -1201,3 +1101,104 @@ if choice == "Income":
             st.table(summary_df.set_index('Category'))
         else:
             st.write("Insufficient data for profit analysis.")
+    with tab2:
+        income = fetch_data("income")
+        students = fetch_data("students")
+        daycare_data = fetch_data("daycare")
+
+        source = [""]
+        student_names = [""]
+
+        if students:
+            student_names.extend([student["name"] for student in students])
+        if daycare_data:
+            student_names.extend([child["name"] for child in daycare_data])
+        if income:
+            unique_sources = set(income["source"] for income in income if income["source"])
+            source.extend(sorted(unique_sources))
+            
+        # Add income record form
+        st.write("Add new income record")
+        with st.form(key="income_form"):
+            student_name_input = st.selectbox("Student Name", options=student_names)
+            source = st.selectbox("Source", ['Fees', 'Daycare','Swimming','Transport'], index=None)
+            amount = st.number_input("Amount")
+            date = st.date_input("Date")
+            submit_button = st.form_submit_button(label="Submit")
+
+            if submit_button:
+                # Form validation
+                if not all([student_name_input, source, amount is not None, date]):
+                    st.error("All fields are required.")
+                
+                else:
+                    formatted_date = date.strftime("%a, %d %b %Y")
+
+                    # Fetch existing expenditures to check for duplicates
+                    income = fetch_data("income")
+                    if income:
+                        df = pd.DataFrame(income)
+                        
+                        # Check if 'date' column exists
+                        if 'date' in df.columns:
+                            duplicate_check = df[
+                                (df["date"] == formatted_date)
+                                & (df["source"] == source)
+                                & (df["amount"] == float(amount))
+                                & (df["student_name"] == student_name_input)
+                            ]
+                            if not duplicate_check.empty:
+                                st.error("Duplicate income record found. Please check the details.")
+                                st.stop()
+                        else:
+                            st.warning("Unable to check for duplicates due to missing date information.")
+
+                    else:                    
+                        income_data = {
+                                "student_name": student_name_input,
+                                "source": source,
+                                "amount": amount,
+                                "date": formatted_date,
+                            }
+                        #First add the income record
+                        income_response = requests.post(f"{BASE_URL}/income", json=income_data)
+                        if income_response.status_code == 201:
+                            response_data = income_response.json()
+                            st.success("Income record added successfully!")
+                            
+                            #if the source is fees, update the fees table
+                            if source == "Fees":
+                                # Fetch current fee record
+                                fee_response = requests.get(f"{BASE_URL}/fees/{student_name_input}")
+                                if fee_response.status_code == 200:
+                                    current_fee_record = fee_response.json()
+                                    
+                                    # Calculate new values
+                                    new_amount_paid = current_fee_record['amount_paid'] + amount
+                                    new_balance = current_fee_record['total_fees'] - new_amount_paid
+                                    
+                                    # Update fee record
+                                    updated_fee_data = {
+                                        'amount_paid': new_amount_paid,
+                                        'balance': new_balance,
+                                        'remarks': f"Payment of {amount} added on {formatted_date}"
+                                    }
+                                    update_response = requests.put(f"{BASE_URL}/fees/{student_name_input}", json=updated_fee_data)
+                                    
+                                    if update_response.status_code == 200:
+                                        st.success("Fee record updated successfully!")
+                                        st.write(f"Updated fee record for {student_name_input}:")
+                                        st.write(f"Total fees: {current_fee_record['total_fees']}")
+                                        st.write(f"Amount paid: {new_amount_paid}")
+                                        st.write(f"Balance: {new_balance}")
+                                    else:
+                                        st.error("Error updating fee record")
+                                        st.rerun()
+                        elif income_response.status_code == 409:
+                            st.error("Duplicate entry. This income record already exists.")
+                            st.rerun()
+                        else:
+                            st.error("Error adding income record")
+                            st.rerun()
+
+    

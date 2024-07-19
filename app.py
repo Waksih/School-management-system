@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS
 import logging
-from datetime import datetime  
-from sqlalchemy.exc import IntegrityError 
+from datetime import datetime
+
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import IntegrityError
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost/school_management'
@@ -203,46 +204,58 @@ def manage_daycare():
     return jsonify(daycare_list)
 
 
-@app.route('/fees', methods=['GET', 'POST'])
-def manage_fees():
-    if request.method == 'POST':
-        logging.debug('POST request received at /fees endpoint')
+@app.route('/fees', methods=['GET',])
+@app.route('/fees/<student_name>', methods=['GET', 'PUT'])
+def manage_fees(student_name = None):
+    if request.method == 'GET':
+        if student_name:
+            #fetch fee record for a specific student
+            fee_record = Fee.query.filter_by(student_name=student_name).first()
+            if fee_record:
+                return jsonify({
+                    'student_name': fee_record.student_name,
+                    'total_fees': fee_record.total_fees,
+                    'amount_paid': fee_record.amount_paid,
+                    'balance': fee_record.balance,
+                    'remarks': fee_record.remarks
+                })
+            else:
+                return jsonify ({'error': 'Fee record not found'}), 404
+        else:
+            logging.debug('GET request received at /fees endpoint')
+            fees = Fee.query.all()
+            fee_list = [{
+                'id': fee.id,
+                'student_name': fee.student_name,
+                'total_fees': fee.total_fees,
+                'amount_paid': fee.amount_paid,
+                'balance': fee.balance,
+                'remarks': fee.remarks
+            } for fee in fees]
+            logging.debug(f"Fees retrieved: {fee_list}")
+            return jsonify(fee_list)
+    elif request.method == 'PUT':
+        #Update fee record for a specific student
+        fee_record = Fee.query.filter_by(student_name=student_name).first()
+        if not fee_record:
+            return jsonify({'error':'Fee record not found'}),404
         data = request.get_json()
-        logging.debug(f"Received data: {data}")
-        
         if not data:
-            logging.error('No data received in POST request')
-            return jsonify({'error': 'No data received'}), 400
+            return jsonify({'error':'No data received'}), 400
 
         try:
-            new_fee = Fee(
-                student_name=data['student_name'],
-                total_fees=data['total_fees'],
-                amount_paid=data['amount_paid'],
-                balance=data['balance'],
-                remarks=data['remarks']
-            )
-            db.session.add(new_fee)
+            fee_record.total_fees = data.get('total_fees', fee_record.total_fees)
+            fee_record.amount_paid = data.get('amount_paid', fee_record.amount_paid)
+            fee_record.balance = data.get('balance', fee_record.balance)
+            fee_record.remarks = data.get('remarks', fee_record.remarks)
+            
             db.session.commit()
-            logging.debug(f"Fee added: {new_fee}")
-            return jsonify({'message': 'Fee record added successfully!'}), 201
+            logging.debug(f"Fee record updated: {fee_record}")
+            return jsonify({'message': 'Fee record updated successfully'}), 200
         except Exception as e:
             db.session.rollback()
-            logging.error(f"Error adding fee: {e}")
+            logging.error(f"Error updating fee: {e}")
             return jsonify({'error': str(e)}), 500
-
-    logging.debug('GET request received at /fees endpoint')
-    fees = Fee.query.all()
-    fee_list = [{
-        'id': fee.id,
-        'student_name': fee.student_name,
-        'total_fees': fee.total_fees,
-        'amount_paid': fee.amount_paid,
-        'balance': fee.balance,
-        'remarks': fee.remarks
-    } for fee in fees]
-    logging.debug(f"Fees retrieved: {fee_list}")
-    return jsonify(fee_list)
 
 
 @app.route('/expenditures', methods=['GET', 'POST'])
@@ -450,12 +463,32 @@ def manage_income():
             )
             db.session.add(new_income)
             db.session.commit()
+
+            #if the source is fees, update the fees table
+            if data['source'] == "Fees":
+                fee_record = Fee.query.filter_by(student_name=data['student_name']).first()
+                if fee_record:
+                    fee_record.amount_paid += float(data['amount'])
+                    fee_record.balance = fee_record.total_fees - fee_record.amount_paid
+                    db.session.commit()
+                    return jsonify({
+                        'message': 'Income record added and fee record updated successfully!',
+                        'updated_fee': {
+                            'student_name': fee_record.student_name,
+                            'total_fees': fee_record.total_fees,
+                            'amount_paid': fee_record.amount_paid,
+                            'balance': fee_record.balance
+                        }
+                    }), 201
+                else:
+                    return jsonify({'error': 'Fee record not found for this student'}), 404
+
+
             logging.debug(f"Income record added: {new_income}")
             return jsonify({'message': 'Income record added successfully!'}), 201
         except IntegrityError:
             db.session.rollback()
             return jsonify({"error": "Duplicate entry. This expenditure already exists."}), 409
-                              
         except Exception as e:
             db.session.rollback()
             logging.error(f"Error adding income record: {e}")
