@@ -518,7 +518,7 @@ def manage_income():
 
             logging.debug(f"Income record added: {new_income}")
             return jsonify({'message': 'Income record added successfully!'}), 201
-        except IntegrityError:
+        except IntegrityError as e:
             db.session.rollback()
             logging.error(f"IntegrityError: {str(e)}")
             
