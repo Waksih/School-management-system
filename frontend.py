@@ -1062,7 +1062,8 @@ if choice == "Income":
                     if income_response.status_code == 201:
                         response_data = income_response.json()
                         st.success(response_data['message'])
-                        
+                        if 'updated_fee' in response_data:                                
+                                st.write(response_data['updated_fee'])
                         # Clear the form                        
                         st.experimental_rerun()
 
@@ -1071,8 +1072,7 @@ if choice == "Income":
                         st.rerun()
                     else:
                         st.error("Error adding income record")
-                        st.rerun()                    
-                    
+                        st.rerun()                                   
     with tab3:
         st.write("Income & Profit Analysis")
         income_records = fetch_data("income")
