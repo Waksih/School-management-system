@@ -1051,28 +1051,28 @@ if choice == "Income":
                         else:
                             st.warning("Unable to check for duplicates due to missing date information.")
 
-                    else:                    
-                        income_data = {
-                                "student_name": student_name_input,
-                                "source": source,
-                                "amount": amount,
-                                "date": formatted_date,
-                            }
-                        #First add the income record
-                        income_response = requests.post(f"{BASE_URL}/income", json=income_data)
-                        if income_response.status_code == 201:
-                            response_data = income_response.json()
-                            st.success(response_data['message'])
-                            if 'updated_fee' in response_data:
-                                st.write("Updated fee record:")
-                                st.write(response_data['updated_fee'])
-                            st.rerun
-                        elif income_response.status_code == 409:
-                            st.error("Duplicate entry. This income record already exists.")
-                            st.rerun()
-                        else:
-                            st.error("Error adding income record")
-                            st.rerun()
+                    income_data = {
+                            "student_name": student_name_input,
+                            "source": source,
+                            "amount": amount,
+                            "date": formatted_date,
+                        }
+                    #First add the income record
+                    income_response = requests.post(f"{BASE_URL}/income", json=income_data)
+                    if income_response.status_code == 201:
+                        response_data = income_response.json()
+                        st.success(response_data['message'])
+                        
+                        # Clear the form                        
+                        st.experimental_rerun()
+
+                    elif income_response.status_code == 409:
+                        st.error("Duplicate entry. This income record already exists.")
+                        st.rerun()
+                    else:
+                        st.error("Error adding income record")
+                        st.rerun()                    
+                    
     with tab3:
         st.write("Income & Profit Analysis")
         income_records = fetch_data("income")
