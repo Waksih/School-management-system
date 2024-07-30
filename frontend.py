@@ -294,11 +294,6 @@ if choice == "Students":
                 )
                 option = st.selectbox("Option", ["Home meals", "School meals"])
                 fee_payable = st.number_input("Fee Payable")
-                fee_paid = st.number_input("Fee Paid")
-                balance = st.number_input("Balance")
-                status = st.selectbox(
-                    "Status", ["Complete", "Incomplete", "Paid", "Unpaid"]
-                )
                 submit_button = st.form_submit_button(label="Submit")
 
                 if submit_button:
@@ -311,9 +306,7 @@ if choice == "Students":
                             payment_mode,
                             option,
                             fee_payable,
-                            fee_paid,
-                            balance,
-                            status,
+                            
                         ]
                     ):
                         st.error("All fields are required.")
@@ -337,9 +330,9 @@ if choice == "Students":
                                 "payment_mode": payment_mode,
                                 "option": option,
                                 "fee_payable": fee_payable,
-                                "fee_paid": fee_paid,
-                                "balance": balance,
-                                "status": status,
+                                "fee_paid": 0, #initialize to 0
+                                "balance": fee_payable,
+                                "status": "Unpaid",
                             }
                             response = requests.post(
                                 f"{BASE_URL}/daycare", json=daycare_data
@@ -1062,11 +1055,14 @@ if choice == "Income":
                     if income_response.status_code == 201:
                         response_data = income_response.json()
                         st.success(response_data['message'])
+                        if 'updated_daycare' in response_data:
+                                st.write(response_data['updated_daycare'])
                         if 'updated_fee' in response_data:                                
                                 st.write(response_data['updated_fee'])
                         # Clear the form                        
                         st.experimental_rerun()
 
+                        
                     elif income_response.status_code == 409:
                         st.error("Duplicate entry. This income record already exists.")
                         st.rerun()
