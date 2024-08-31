@@ -278,6 +278,7 @@ def manage_daycare(name=None):
             logging.error(f"Error updating daycare record: {e}")
             return jsonify({'error': str(e)}), 500
 
+
 @app.route('/fees', methods=['GET',])
 @app.route('/fees/<student_name>', methods=['GET', 'PUT'])
 def manage_fees(student_name = None):
@@ -542,7 +543,9 @@ def manage_income():
             return jsonify({'error': 'No data received'}), 400
 
         try:
+            #parse the date
             date_obj = datetime.strptime(data['date'], '%a, %d %b %Y').date()
+            #create and add new income record
             new_income = Income(
                 source=data['source'],
                 amount=Decimal(str(data['amount'])),
@@ -581,7 +584,7 @@ def manage_income():
 
 
             #if the source is fees, update the fees table
-            if data['source'] == "Fees":
+            elif data['source'] == "Fees":
                 logging.debug(f"Attempting to update fee record for student: {data['student_name']}")               
                 fee_record = Fee.query.filter_by(student_name=data['student_name']).first()
                 if fee_record:
