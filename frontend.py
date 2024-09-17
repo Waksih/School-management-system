@@ -1012,7 +1012,7 @@ if choice == "Income":
         st.write("Add new income record")
         with st.form(key="income_form"):
             student_name_input = st.selectbox("Student Name", options=student_names)
-            source = st.selectbox("Source", ['Fees', 'Daycare','Swimming','Transport'], index=None)
+            source = st.selectbox("Source", ['Fees', 'Daycare','Swimming','Transport', 'Uniform', 'Graduation', 'Educational Trip', 'School Activity'], index=None)
             amount = st.number_input("Amount")
             date = st.date_input("Date")
             submit_button = st.form_submit_button(label="Submit")
@@ -1055,8 +1055,7 @@ if choice == "Income":
                     if income_response.status_code == 201:
                         response_data = income_response.json()
                         st.success(response_data['message'])
-                        if 'updated_daycare' in response_data:
-                                st.write(response_data['updated_daycare'])
+                        
                         if 'updated_fee' in response_data:                                
                                 st.write(response_data['updated_fee'])
                         # Clear the form                        
