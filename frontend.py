@@ -405,7 +405,7 @@ if choice == "Fees":
         "<div class='section-header'>Fee Management</div>", unsafe_allow_html=True
     )
 
-    tab1, tab3 = st.tabs(["Records", "Analytics"])
+    tab1, tab2 = st.tabs(["Records", "Analytics"])
 
     with tab1:
         # Automatically fetch and display fee records
@@ -426,7 +426,7 @@ if choice == "Fees":
         else:
             st.write("No Fee records to display.")
 
-    with tab3:
+    with tab2:
         # fetch fees data
         fees = fetch_data("fees")
         daycare = fetch_data("daycare")
@@ -993,21 +993,17 @@ if choice == "Income":
         else:
             st.write("No income records to display.")
     with tab2:
-        income = fetch_data("income")
         students = fetch_data("students")
         daycare_data = fetch_data("daycare")
 
-        source = [""]
+        
         student_names = [""]
 
         if students:
             student_names.extend([student["name"] for student in students])
         if daycare_data:
             student_names.extend([child["name"] for child in daycare_data])
-        if income:
-            unique_sources = set(income["source"] for income in income if income["source"])
-            source.extend(sorted(unique_sources))
-            
+         
         # Add income record form
         st.write("Add new income record")
         with st.form(key="income_form"):
@@ -1058,9 +1054,9 @@ if choice == "Income":
                         
                         if 'updated_fee' in response_data:                                
                                 st.write(response_data['updated_fee'])
-                        # Clear the form                        
-                        st.experimental_rerun()
-
+                        
+                        # Use st.rerun() to refresh the page
+                        st.rerun()
                         
                     elif income_response.status_code == 409:
                         st.error("Duplicate entry. This income record already exists.")
@@ -1170,4 +1166,5 @@ if choice == "Income":
             st.table(summary_df.set_index('Category'))
         else:
             st.write("Insufficient data for profit analysis.")
-    
+
+

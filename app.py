@@ -96,7 +96,7 @@ class Income(db.Model):
     source = db.Column(db.String(50))
     amount = db.Column(db.Numeric(10, 2))
     date = db.Column(db.Date)
-    student_name = db.Column(db.String(50), db.ForeignKey('students.name'))
+    student_name = db.Column(db.String(50))
 
 
 # Define routes for each table and handle CRUD operations
@@ -492,36 +492,8 @@ def manage_income():
             db.session.add(new_income)
             db.session.commit()
 
-
-            # If the source is Daycare, update the daycare table
-            if data['source'] == "Daycare":
-                logging.debug(f"Attempting to update daycare record for child: {data['student_name']}")
-                daycare_record = Daycare.query.filter_by(name=data['student_name']).first()
-                if daycare_record:
-                    logging.debug(f"Daycare record found. Current fee_paid: {daycare_record.fee_paid}")
-                    daycare_record.fee_paid += Decimal(str(data['amount']))
-                    daycare_record.balance = daycare_record.fee_payable - daycare_record.fee_paid
-                    daycare_record.status = 'Paid' if daycare_record.balance <= 0 else 'Incomplete'
-                    db.session.commit()
-                    logging.debug(f"Daycare record updated. New fee_paid: {daycare_record.fee_paid}, New balance: {daycare_record.balance}")
-                    
-                    return jsonify({
-                        'message': 'Income record added and daycare record updated successfully!',
-                        'updated_daycare': {
-                            'name': daycare_record.name,
-                            'fee_payable': daycare_record.fee_payable,
-                            'fee_paid': daycare_record.fee_paid,
-                            'balance': daycare_record.balance,
-                            'status': daycare_record.status
-                        }
-                    }), 201
-                else:
-                    logging.error(f"Daycare record not found for child: {data['student_name']}")
-                    return jsonify({'error': 'Daycare record not found for this child'}), 404
-
-
             #if the source is fees, update the fees table
-            elif data['source'] == "Fees":
+            if data['source'] == "Fees":
                 logging.debug(f"Attempting to update fee record for student: {data['student_name']}")               
                 fee_record = Fee.query.filter_by(student_name=data['student_name']).first()
                 if fee_record:
@@ -544,15 +516,15 @@ def manage_income():
                     logging.error(f"Fee record not found for student: {data['student_name']}")
                    
                     return jsonify({'error': 'Fee record not found for this student'}), 404
-
-
-            logging.debug(f"Income record added: {new_income}")
-            return jsonify({'message': 'Income record added successfully!'}), 201
+            else:
+                logging.debug(f"Income record added for source {data['source']}: {new_income}")
+                return jsonify({'message': 'Income record added successfully!'}), 201
+        
         except IntegrityError as e:
             db.session.rollback()
             logging.error(f"IntegrityError: {str(e)}")
-            
             return jsonify({"error": "Duplicate entry. This income already exists."}), 409
+        
         except Exception as e:
             db.session.rollback()
             logging.error(f"Error adding income record: {e}")
