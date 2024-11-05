@@ -195,8 +195,6 @@ if choice == "Students":
                             class_name,
                             parent1_name,
                             parent1_phone,
-                            parent2_name,
-                            parent2_phone,
                             fee_payable,
                             fee_status,
                         ]
@@ -995,7 +993,6 @@ if choice == "Income":
     with tab2:
         students = fetch_data("students")
         daycare_data = fetch_data("daycare")
-
         
         student_names = [""]
 
@@ -1003,13 +1000,13 @@ if choice == "Income":
             student_names.extend([student["name"] for student in students])
         if daycare_data:
             student_names.extend([child["name"] for child in daycare_data])
-         
+        
         # Add income record form
         st.write("Add new income record")
         with st.form(key="income_form"):
-            student_name_input = st.selectbox("Student Name", options=student_names)
-            source = st.selectbox("Source", ['Fees', 'Daycare','Swimming','Transport', 'Uniform', 'Graduation', 'Educational Trip', 'School Activity'], index=None)
-            amount = st.number_input("Amount")
+            student_name_input = st.selectbox("Student Name", options=student_names, key="student_name")
+            source = st.selectbox("Source", ['Fees', 'Daycare','Swimming','Transport', 'Uniform', 'Graduation', 'Educational Trip', 'School Activity', 'Admission Fee'], index=None, key="source")
+            amount = st.number_input("Amount", key="amount")
             date = st.date_input("Date")
             submit_button = st.form_submit_button(label="Submit")
 
@@ -1051,19 +1048,14 @@ if choice == "Income":
                     if income_response.status_code == 201:
                         response_data = income_response.json()
                         st.success(response_data['message'])
-                        
                         if 'updated_fee' in response_data:                                
                                 st.write(response_data['updated_fee'])
                         
-                        # Use st.rerun() to refresh the page
-                        st.rerun()
-                        
                     elif income_response.status_code == 409:
                         st.error("Duplicate entry. This income record already exists.")
-                        st.rerun()
+                        
                     else:
                         st.error("Error adding income record")
-                        st.rerun()                                   
     with tab3:
         st.write("Income & Profit Analysis")
         income_records = fetch_data("income")
@@ -1166,5 +1158,4 @@ if choice == "Income":
             st.table(summary_df.set_index('Category'))
         else:
             st.write("Insufficient data for profit analysis.")
-
-
+   
