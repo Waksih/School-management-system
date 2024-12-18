@@ -414,12 +414,16 @@ if choice == "Fees":
                 fees,
                 columns=[
                     "student_name",
+                    "term",
+                    "year",
                     "total_fees",
                     "amount_paid",
                     "balance",
                     "remarks",
                 ],
             )
+            df['year'] = df['year'].astype(int)  # Remove formatting issues
+
             st.dataframe(df, use_container_width=True)
         else:
             st.write("No Fee records to display.")
@@ -1005,7 +1009,7 @@ if choice == "Income":
         st.write("Add new income record")
         with st.form(key="income_form"):
             student_name_input = st.selectbox("Student Name", options=student_names, key="student_name")
-            source = st.selectbox("Source", ['Fees', 'Daycare','Swimming','Transport', 'Uniform', 'Graduation', 'Educational Trip', 'School Activity', 'Admission Fee'], index=None, key="source")
+            source = st.selectbox("Source", ['Fees', 'Daycare','Swimming','Transport', 'Uniform', 'Afterschool/Tution','Graduation', 'Educational Trip', 'School Activity', 'Admission Fee'], index=None, key="source")
             amount = st.number_input("Amount", key="amount")
             date = st.date_input("Date")
             submit_button = st.form_submit_button(label="Submit")

@@ -51,6 +51,8 @@ class Fee(db.Model):
     __tablename__ = 'fees'
     id = db.Column(db.Integer, primary_key=True)
     student_name = db.Column(db.String, db.ForeignKey('students.name'))
+    term = db.Column(db.String(10), nullable=False)
+    year = db.Column(db.Integer, nullable=False)    
     total_fees = db.Column(db.Numeric(10, 2))
     amount_paid = db.Column(db.Numeric(10, 2))
     balance = db.Column(db.Numeric(10, 2))
@@ -97,6 +99,21 @@ class Income(db.Model):
     amount = db.Column(db.Numeric(10, 2))
     date = db.Column(db.Date)
     student_name = db.Column(db.String(50))
+
+#functioon for getting the fees correctly
+def get_term_fees(student_class, term):
+        """Return the fees for a specific class and term."""
+        fee_structure = {
+            'Bizzybee': {1: 11500, 2: 11500, 3: 10500},
+            'Pathfinder': {1: 12500, 2: 12500, 3: 11500},
+            'Minichamps': {1: 12500, 2: 12500, 3: 11500},
+            'Wonderland': {1: 14500, 2: 14500, 3: 13500},
+            'Amazing': {1: 14500, 2: 14500, 3: 13500}
+            # Add other classes and their fee structures here
+        }
+
+        # Get the fees for the given class and term, or return 0 if not found
+        return fee_structure.get(student_class, {}).get(term, 0)
 
 
 # Define routes for each table and handle CRUD operations
@@ -216,73 +233,112 @@ def manage_daycare():
     return jsonify(daycare_list)
 
 
-@app.route('/fees', methods=['GET',])
+@app.route('/fees', methods=['GET'])
 @app.route('/fees/<student_name>', methods=['GET', 'PUT'])
-def manage_fees(student_name = None):
+def manage_fees(student_name=None):
+    
+    def update_term_and_year(fee_record, student_class):
+        """Handles logic for advancing terms and resetting to the next year if necessary."""
+        fee_record.term += 1
+        if fee_record.term > 3:
+            fee_record.term = 1
+            fee_record.year += 1
+        fee_record.total_fees = get_term_fees(student_class, fee_record.term)
+
+    def handle_payment(fee_record, payment, student_class):
+        """Processes the payment, updates the balance, and handles term/year rollover."""
+        fee_record.amount_paid += payment
+        fee_record.balance = fee_record.total_fees - fee_record.amount_paid
+        if fee_record.balance <= 0:
+            overpayment = abs(fee_record.balance)
+            update_term_and_year(fee_record, student_class)
+            fee_record.amount_paid = overpayment
+            fee_record.balance = fee_record.total_fees - overpayment
+
+
+     # --- Handle GET Requests ---
     if request.method == 'GET':
         if student_name:
-            #fetch fee record for a specific student
             logging.debug(f"Fetching fee record for student: {student_name}")
-            
-            fee_record = Fee.query.filter_by(student_name=student_name).first()
+             # Perform a join between 'fees' and 'students' tables to fetch class_name
+            fee_record = db.session.query(Fee, Student).join(Student, Fee.student_name == Student.name).filter(
+                Fee.student_name == student_name
+            ).first()
             if fee_record:
-                logging.debug(f"Fee record found: {fee_record}")
-                
+                fee, student = fee_record
+                logging.debug(f"Fee record found: {fee}")
                 return jsonify({
-                    'student_name': fee_record.student_name,
-                    'total_fees': fee_record.total_fees,
-                    'amount_paid': fee_record.amount_paid,
-                    'balance': fee_record.balance,
-                    'remarks': fee_record.remarks
+                    'student_name': fee.student_name,
+                    'class_name': student.class_name,  # Include class name from the students table
+                    'term': fee.term,
+                    'year': fee.year,
+                    'total_fees': fee.total_fees,
+                    'amount_paid': fee.amount_paid,
+                    'balance': fee.balance,
+                    'remarks': fee.remarks
                 })
             else:
                 logging.error(f"Fee record not found for student: {student_name}")
-                
-                return jsonify ({'error': 'Fee record not found'}), 404
+                return jsonify({'error': 'Fee record not found'}), 404
+       
         else:
-            logging.debug('GET request received at /fees endpoint')
             fees = Fee.query.all()
             fee_list = [{
                 'id': fee.id,
                 'student_name': fee.student_name,
+                'term': fee.term,
+                'year': int(fee.year),
                 'total_fees': fee.total_fees,
                 'amount_paid': fee.amount_paid,
                 'balance': fee.balance,
                 'remarks': fee.remarks
             } for fee in fees]
-            logging.debug(f"Fees retrieved: {fee_list}")
             return jsonify(fee_list)
+
+
+    # --- Handle PUT Requests ---
     elif request.method == 'PUT':
-        logging.debug(f"PUT request received to update fee record for student: {student_name}")
+        logging.debug(f"PUT request to update fee record for student: {student_name}")
         
-        #Update fee record for a specific student
-        fee_record = Fee.query.filter_by(student_name=student_name).first()
+        # Fetch the fee record and student class name using a join
+        fee_record = db.session.query(Fee, Student).join(Student, Fee.student_name == Student.name).filter(
+            Fee.student_name == student_name
+        ).first()
+        
         if not fee_record:
-            logging.error(f"Fee record not found for student: {student_name}")
-            
-            return jsonify({'error':'Fee record not found'}),404
+            return jsonify({'error': 'Fee record not found'}), 404
+
         data = request.get_json()
         if not data:
-            logging.error('No data received in PUT request')
-           
-            return jsonify({'error':'No data received'}), 400
+            return jsonify({'error': 'No data received'}), 400
 
         try:
-            logging.debug(f"Current fee record: {fee_record}")
-            
-            fee_record.total_fees = data.get('total_fees', fee_record.total_fees)
-            fee_record.amount_paid = data.get('amount_paid', fee_record.amount_paid)
-            fee_record.balance = data.get('balance', fee_record.balance)
-            fee_record.remarks = data.get('remarks', fee_record.remarks)
-            
+            if 'payment' in data:
+                payment = float(data['payment'])
+                handle_payment(fee, payment, student.class_name)  # Pass class_name to fee logic
+
+            # Update other fee fields from the request
+            for field in ['term', 'year', 'total_fees', 'amount_paid', 'balance', 'remarks']:
+                if field in data:
+                    setattr(fee, field, data[field])
+
             db.session.commit()
-            logging.debug(f"Fee record updated: {fee_record}")
-            return jsonify({'message': 'Fee record updated successfully'}), 200
+            return jsonify({
+                'message': 'Fee record updated successfully',
+                'student_name': fee.student_name,
+                'class_name': student.class_name,
+                'term': fee.term,
+                'year': fee.year,
+                'total_fees': fee.total_fees,
+                'amount_paid': fee.amount_paid,
+                'balance': fee.balance,
+                'remarks': fee.remarks
+            }), 200
+
         except Exception as e:
             db.session.rollback()
             logging.error(f"Error updating fee: {e}")
             return jsonify({'error': str(e)}), 500
-
 
 @app.route('/expenditures', methods=['GET', 'POST'])
 def manage_expenditures():
@@ -507,6 +563,8 @@ def manage_income():
                         'message': 'Income record added and fee record updated successfully!',
                         'updated_fee': {
                             'student_name': fee_record.student_name,
+                            'year': fee_record.year,
+                            'term': fee_record.term,
                             'total_fees': fee_record.total_fees,
                             'amount_paid': fee_record.amount_paid,
                             'balance': fee_record.balance
