@@ -422,7 +422,7 @@ if choice == "Fees":
                     "remarks",
                 ],
             )
-            df['year'] = df['year'].astype(int)  # Remove formatting issues
+            df['year'] = df['year'].apply(lambda x: f"{int(x)}") # Remove formatting issues
 
             st.dataframe(df, use_container_width=True)
         else:

@@ -51,7 +51,7 @@ class Fee(db.Model):
     __tablename__ = 'fees'
     id = db.Column(db.Integer, primary_key=True)
     student_name = db.Column(db.String, db.ForeignKey('students.name'))
-    term = db.Column(db.String(10), nullable=False)
+    term = db.Column(db.Integer, nullable=False)
     year = db.Column(db.Integer, nullable=False)    
     total_fees = db.Column(db.Numeric(10, 2))
     amount_paid = db.Column(db.Numeric(10, 2))
@@ -244,16 +244,40 @@ def manage_fees(student_name=None):
             fee_record.term = 1
             fee_record.year += 1
         fee_record.total_fees = get_term_fees(student_class, fee_record.term)
-
+    
     def handle_payment(fee_record, payment, student_class):
-        """Processes the payment, updates the balance, and handles term/year rollover."""
+        """
+        Processes the payment, updates the balance, and handles term/year rollover.
+        If payment covers current term and there's an overpayment, advance to next term/year.
+        """
+        # Step 1: Add payment to amount paid
         fee_record.amount_paid += payment
+        
+        # Step 2: Calculate remaining balance
         fee_record.balance = fee_record.total_fees - fee_record.amount_paid
-        if fee_record.balance <= 0:
+        
+        # Step 3: Handle overpayment and term/year rollover
+        while fee_record.balance <= 0:
+            # Overpayment amount
             overpayment = abs(fee_record.balance)
-            update_term_and_year(fee_record, student_class)
+            
+            # Advance to the next term
+            fee_record.term += 1
+            
+            # Check if term exceeds 3 and reset to term 1, increment year
+            if fee_record.term > 3:
+                fee_record.term = 1
+                fee_record.year += 1
+            
+            # Fix year formatting to avoid commas
+            fee_record.year = int(str(fee_record.year).replace(",", ""))
+            
+            # Dynamically set the total fees for the new term based on the student's class
+            fee_record.total_fees = get_term_fees(student_class, fee_record.term)
+            
+            # Reset amount paid to the overpayment and recalculate balance
             fee_record.amount_paid = overpayment
-            fee_record.balance = fee_record.total_fees - overpayment
+            fee_record.balance = fee_record.total_fees - fee_record.amount_paid
 
 
      # --- Handle GET Requests ---
