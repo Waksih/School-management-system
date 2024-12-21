@@ -85,7 +85,7 @@ st.markdown(
 )
 
 
-BASE_URL = "http://localhost:5000"
+BASE_URL = "https://school-management-system-4rbb.onrender.com"
 
 
 # Title at the top
