@@ -1,22 +1,16 @@
 import logging
-import os
 from datetime import datetime
 from decimal import Decimal
-from dotenv import load_dotenv
+
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 
-
-load_dotenv()
-
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost/school_management'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app) #initialize SQLAlchemy
-migrate = Migrate(app,db) #initialize Flask-Migrate
+db = SQLAlchemy(app)
 
 
 #Enable CORS
